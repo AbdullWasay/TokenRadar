@@ -1,3 +1,4 @@
+import SolanaWalletProvider from "@/components/solana-wallet-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/lib/auth-context"
@@ -27,12 +28,14 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <WalletProvider>
-            <AuthProvider>
-              {children}
-              <Toaster />
-            </AuthProvider>
-          </WalletProvider>
+          <SolanaWalletProvider>
+            <WalletProvider>
+              <AuthProvider>
+                {children}
+                <Toaster />
+              </AuthProvider>
+            </WalletProvider>
+          </SolanaWalletProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -2,6 +2,7 @@
 
 import { ModeToggle } from "@/components/mode-toggle"
 import NotificationsDropdown from "@/components/notifications-dropdown"
+import SimpleWalletConnect from "@/components/simple-wallet-connect"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,7 +14,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import WalletConnect from "@/components/wallet-connect"
 import { useAuth } from "@/lib/auth-context"
 import { Bell, Menu, Search } from "lucide-react"
 import Link from "next/link"
@@ -55,7 +55,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
         )}
       </div>
       <div className="flex items-center gap-4">
-        <WalletConnect />
+        <SimpleWalletConnect />
         <ModeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

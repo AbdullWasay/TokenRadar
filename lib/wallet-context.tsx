@@ -1,6 +1,8 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { getWalletBalance } from './solana-utils'
 
 // Define the types for our wallet connection
 type Wallet = {
@@ -14,6 +16,7 @@ type WalletContextType = {
   connecting: boolean
   connectWallet: () => Promise<void>
   disconnectWallet: () => void
+  refreshBalance: () => Promise<void>
 }
 
 // Create the context with default values
@@ -22,6 +25,7 @@ const WalletContext = createContext<WalletContextType>({
   connecting: false,
   connectWallet: async () => {},
   disconnectWallet: () => {},
+  refreshBalance: async () => {},
 })
 
 // Custom hook to use the wallet context
@@ -29,6 +33,7 @@ export const useWallet = () => useContext(WalletContext)
 
 // Provider component
 export function WalletProvider({ children }: { children: ReactNode }) {
+  const solanaWallet = useSolanaWallet()
   const [wallet, setWallet] = useState<Wallet>({
     publicKey: null,
     connected: false,
@@ -36,71 +41,74 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   })
   const [connecting, setConnecting] = useState(false)
 
-  // Check if wallet is already connected on component mount
+  // Update wallet state when Solana wallet changes
   useEffect(() => {
-    const checkWalletConnection = async () => {
-      if (typeof window !== "undefined" && window.solana) {
+    const updateWalletState = async () => {
+      if (solanaWallet.connected && solanaWallet.publicKey) {
         try {
-          // Check if the wallet is already connected
-          const response = await window.solana.connect({ onlyIfTrusted: true })
+          const balance = await getWalletBalance(solanaWallet.publicKey.toString())
           setWallet({
-            publicKey: response.publicKey.toString(),
+            publicKey: solanaWallet.publicKey.toString(),
             connected: true,
-            balance: await getBalance(response.publicKey.toString()),
+            balance,
           })
         } catch (error) {
-          // Wallet not connected or not trusted
-          console.log("Wallet not connected:", error)
+          console.error('Error fetching balance:', error)
+          setWallet({
+            publicKey: solanaWallet.publicKey.toString(),
+            connected: true,
+            balance: 0,
+          })
         }
+      } else {
+        setWallet({
+          publicKey: null,
+          connected: false,
+          balance: null,
+        })
       }
     }
 
-    checkWalletConnection()
-  }, [])
+    updateWalletState()
+  }, [solanaWallet.connected, solanaWallet.publicKey])
 
-  // Mock function to get balance - in a real app, this would call the Solana blockchain
-  const getBalance = async (publicKey: string): Promise<number> => {
-    // This is a mock - in a real app, you would fetch the actual balance from Solana
-    return 10.5 // Mock SOL balance
+  // Update connecting state
+  useEffect(() => {
+    setConnecting(solanaWallet.connecting)
+  }, [solanaWallet.connecting])
+
+  // Refresh balance function
+  const refreshBalance = async () => {
+    if (wallet.publicKey) {
+      try {
+        const balance = await getWalletBalance(wallet.publicKey)
+        setWallet(prev => ({ ...prev, balance }))
+      } catch (error) {
+        console.error("Error refreshing balance:", error)
+      }
+    }
   }
 
   // Connect wallet function
   const connectWallet = async () => {
-    if (typeof window !== "undefined" && window.solana) {
-      try {
-        setConnecting(true)
-        const response = await window.solana.connect()
-        const balance = await getBalance(response.publicKey.toString())
-
-        setWallet({
-          publicKey: response.publicKey.toString(),
-          connected: true,
-          balance,
-        })
-      } catch (error) {
-        console.error("Error connecting wallet:", error)
-      } finally {
-        setConnecting(false)
-      }
-    } else {
-      window.open("https://phantom.app/", "_blank")
+    try {
+      await solanaWallet.connect()
+    } catch (error) {
+      console.error("Error connecting wallet:", error)
     }
   }
 
   // Disconnect wallet function
-  const disconnectWallet = () => {
-    if (typeof window !== "undefined" && window.solana) {
-      window.solana.disconnect()
-      setWallet({
-        publicKey: null,
-        connected: false,
-        balance: null,
-      })
+  const disconnectWallet = async () => {
+    try {
+      await solanaWallet.disconnect()
+    } catch (error) {
+      console.error("Error disconnecting wallet:", error)
     }
   }
 
   return (
-    <WalletContext.Provider value={{ wallet, connecting, connectWallet, disconnectWallet }}>
+    <WalletContext.Provider value={{ wallet, connecting, connectWallet, disconnectWallet, refreshBalance }}>
       {children}
     </WalletContext.Provider>
   )

@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Solana Wallet Adapter Styles */
+@import '../styles/wallet-adapter.css';
+
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;

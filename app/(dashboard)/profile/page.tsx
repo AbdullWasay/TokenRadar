@@ -1,9 +1,11 @@
 "use client"
 
 import EditProfileModal from "@/components/edit-profile-modal"
+import SubscriptionPayment from "@/components/subscription-payment"
 import TokenTable from "@/components/token-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-context"
 import { Calendar, Crown, Edit, Mail, Star } from "lucide-react"
 import Image from "next/image"
@@ -59,33 +61,27 @@ const subscriptionPlans = [
     id: "free",
     name: "Free Plan",
     description: "For Individual Users",
+    price: "Free",
     features: [
-      "10 free requests per month",
-      "Limited access to the AI writing assistant",
-      "Limited to basic tools (e.g., Professional and Casual)",
+      "Basic token tracking",
+      "Limited market data",
+      "Community support",
+      "Basic analytics",
     ],
     isPopular: false,
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
-    description: "For Individual Users",
+    id: "premium",
+    name: "Premium Plan",
+    description: "For Serious Traders",
+    price: "2 SOL/month",
     features: [
-      "10 free requests per month",
-      "Limited access to the AI writing assistant",
-      "Limited to basic tools (e.g., Professional and Casual)",
-    ],
-    isPopular: false,
-  },
-  {
-    id: "member",
-    name: "Member Plan",
-    description: "For Individual Users",
-    features: [
-      "Access to tools at any time for a monthly fee",
-      "Ability to be featured",
-      "Receive ranked tokens to make investment decision",
-      "AI ranked projects and tools for you",
+      "Advanced token analytics",
+      "Real-time price alerts",
+      "Priority customer support",
+      "Unlimited token tracking",
+      "Advanced market insights",
+      "Portfolio management tools",
     ],
     isPopular: true,
   },
@@ -94,6 +90,7 @@ const subscriptionPlans = [
 export default function ProfilePage() {
   const { user } = useAuth()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(user?.subscriptionStatus || "free")
 
   return (
@@ -215,19 +212,30 @@ export default function ProfilePage() {
                     ))}
                   </ul>
 
-                  <Button
-                    className={`w-full ${
-                      isCurrentPlan
-                        ? "bg-green-600 hover:bg-green-700"
-                        : plan.isPopular
-                        ? "bg-purple-700 hover:bg-purple-800"
-                        : "bg-purple-700 hover:bg-purple-800"
-                    }`}
-                    onClick={() => setSelectedPlan(plan.id)}
-                    disabled={isCurrentPlan}
-                  >
-                    {isCurrentPlan ? 'Current Plan' : isUpgrade ? 'Upgrade Now' : 'Get Started Now'}
-                  </Button>
+                  <div className="space-y-2">
+                    <div className="text-center">
+                      <span className="text-2xl font-bold">{plan.price}</span>
+                    </div>
+                    <Button
+                      className={`w-full ${
+                        isCurrentPlan
+                          ? "bg-green-600 hover:bg-green-700"
+                          : plan.isPopular
+                          ? "bg-purple-700 hover:bg-purple-800"
+                          : "bg-purple-700 hover:bg-purple-800"
+                      }`}
+                      onClick={() => {
+                        if (plan.id === 'premium' && user?.subscriptionStatus !== 'premium') {
+                          setIsPaymentModalOpen(true)
+                        } else {
+                          setSelectedPlan(plan.id)
+                        }
+                      }}
+                      disabled={isCurrentPlan}
+                    >
+                      {isCurrentPlan ? 'Current Plan' : plan.id === 'premium' ? 'Upgrade with SOL' : 'Current Plan'}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )
@@ -258,6 +266,21 @@ export default function ProfilePage() {
           image: "/placeholder.svg?height=100&width=100"
         }}
       />
+
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upgrade to Premium</DialogTitle>
+          </DialogHeader>
+          <SubscriptionPayment
+            onSuccess={() => {
+              setIsPaymentModalOpen(false)
+              // The user data will be refreshed automatically by the payment component
+            }}
+            onCancel={() => setIsPaymentModalOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

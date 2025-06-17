@@ -1,11 +1,21 @@
 import mongoose, { Document, Model, Schema } from 'mongoose'
 
+export interface IPaymentHistory {
+  transactionSignature: string
+  amount: number
+  timestamp: Date
+  walletAddress: string
+  subscriptionDuration: number
+}
+
 export interface IUser extends Document {
   name: string
   email: string
   password: string
   subscriptionStatus: 'free' | 'premium'
   subscriptionExpiry?: Date
+  walletAddress?: string
+  paymentHistory: IPaymentHistory[]
   createdAt: Date
   updatedAt: Date
   lastLogin?: Date
@@ -45,6 +55,32 @@ const UserSchema: Schema<IUser> = new Schema(
       type: Date,
       default: null
     },
+    walletAddress: {
+      type: String,
+      default: null
+    },
+    paymentHistory: [{
+      transactionSignature: {
+        type: String,
+        required: true
+      },
+      amount: {
+        type: Number,
+        required: true
+      },
+      timestamp: {
+        type: Date,
+        required: true
+      },
+      walletAddress: {
+        type: String,
+        required: true
+      },
+      subscriptionDuration: {
+        type: Number,
+        required: true
+      }
+    }],
     lastLogin: {
       type: Date,
       default: null
