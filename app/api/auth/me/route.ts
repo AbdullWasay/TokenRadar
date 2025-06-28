@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import dbConnect from '@/lib/mongodb'
+import { AuthenticatedRequest, handleApiError, withAuth } from '@/lib/middleware'
 import User from '@/lib/models/User'
-import { withAuth, AuthenticatedRequest, handleApiError } from '@/lib/middleware'
+import dbConnect from '@/lib/mongodb'
 import type { AuthResponse } from '@/lib/types'
+import { NextResponse } from 'next/server'
 
 async function handler(request: AuthenticatedRequest) {
   try {
@@ -28,6 +28,7 @@ async function handler(request: AuthenticatedRequest) {
         id: dbUser._id.toString(),
         name: dbUser.name,
         email: dbUser.email,
+        profileImage: dbUser.profileImage,
         subscriptionStatus: dbUser.subscriptionStatus,
         subscriptionExpiry: dbUser.subscriptionExpiry,
         createdAt: dbUser.createdAt,

@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useWallet } from "@/lib/wallet-context"
 import { CheckCircle2, ChevronRight, Clock, Download } from "lucide-react"
 import Link from "next/link"
-import { useWallet } from "@/lib/wallet-context"
+import { useEffect, useState } from "react"
 
 export default function ConfirmationPage() {
   const { wallet } = useWallet()

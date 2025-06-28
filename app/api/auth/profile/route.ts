@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
-import dbConnect from '@/lib/mongodb'
+import { AuthenticatedRequest, handleApiError, withAuth } from '@/lib/middleware'
 import User from '@/lib/models/User'
-import { withAuth, AuthenticatedRequest, handleApiError } from '@/lib/middleware'
+import dbConnect from '@/lib/mongodb'
 import type { AuthResponse } from '@/lib/types'
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
 
 // Validation schema
 const updateProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name cannot exceed 50 characters'),
   email: z.string().email('Please enter a valid email address'),
+  profileImage: z.string().url('Profile image must be a valid URL').optional(),
 })
 
 async function handler(request: AuthenticatedRequest) {
@@ -35,7 +36,7 @@ async function handler(request: AuthenticatedRequest) {
       )
     }
 
-    const { name, email } = validationResult.data
+    const { name, email, profileImage } = validationResult.data
 
     // Check if email is already taken by another user
     if (email !== user.email) {
@@ -53,12 +54,18 @@ async function handler(request: AuthenticatedRequest) {
     }
 
     // Update user
+    const updateData: any = {
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+    }
+
+    if (profileImage !== undefined) {
+      updateData.profileImage = profileImage
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       user.userId,
-      {
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
-      },
+      updateData,
       { new: true, runValidators: true }
     ).select('-password')
 
@@ -77,6 +84,7 @@ async function handler(request: AuthenticatedRequest) {
         id: updatedUser._id.toString(),
         name: updatedUser.name,
         email: updatedUser.email,
+        profileImage: updatedUser.profileImage,
         subscriptionStatus: updatedUser.subscriptionStatus,
         subscriptionExpiry: updatedUser.subscriptionExpiry,
         createdAt: updatedUser.createdAt,

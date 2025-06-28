@@ -1,107 +1,109 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { AlertCircle, Bell } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
-interface NotificationsDropdownProps {
-  isOpen: boolean
-  onClose: () => void
+interface Alert {
+  id: string
+  title: string
+  message: string
+  time: string
+  read: boolean
+  type: 'price' | 'token' | 'system'
 }
 
-// Mock notifications data
-const notifications = [
-  {
-    id: "1",
-    title: "New Token Alert",
-    message: "PEPE token has been added to the platform",
-    time: "5 minutes ago",
-    read: false,
-  },
-  {
-    id: "2",
-    title: "Price Alert",
-    message: "DOGE has increased by 15% in the last hour",
-    time: "1 hour ago",
-    read: false,
-  },
-  {
-    id: "3",
-    title: "System Update",
-    message: "Platform maintenance scheduled for tomorrow",
-    time: "3 hours ago",
-    read: true,
-  },
-]
-
-export default function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdownProps) {
-  const dropdownRef = useRef<HTMLDivElement>(null)
+export default function NotificationsDropdown() {
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        onClose()
+    // Fetch real alerts from API
+    const fetchAlerts = async () => {
+      try {
+        const response = await fetch('/api/alerts?triggered=true&active=true')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            // Transform API alerts to notification format
+            const notifications = data.data.slice(0, 5).map((alert: any) => ({
+              id: alert._id,
+              title: `${alert.alertType} Alert`,
+              message: `${alert.tokenSymbol} ${alert.condition} ${alert.targetValue}`,
+              time: new Date(alert.triggeredAt || alert.createdAt).toLocaleString(),
+              read: false,
+              type: alert.alertType
+            }))
+            setAlerts(notifications)
+          } else {
+            setAlerts([])
+          }
+        } else {
+          setAlerts([])
+        }
+      } catch (error) {
+        console.error('Error fetching alerts:', error)
+        setAlerts([])
+      } finally {
+        setLoading(false)
       }
     }
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
+    fetchAlerts()
+  }, [])
 
   return (
-    <div
-      ref={dropdownRef}
-      className="absolute right-0 top-10 w-80 bg-white rounded-md shadow-lg border border-gray-200 z-50"
-    >
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-medium">Notifications</h3>
-        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-          <X size={16} />
-        </Button>
-      </div>
+    <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuLabel className="flex items-center gap-2">
+        <Bell className="h-4 w-4" />
+        Notifications
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
 
-      <div className="max-h-[400px] overflow-y-auto">
-        {notifications.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">No notifications</div>
+      <div className="max-h-[300px] overflow-y-auto">
+        {loading ? (
+          <div className="p-4 text-center text-gray-500">
+            Loading notifications...
+          </div>
+        ) : alerts.length === 0 ? (
+          <div className="p-4 text-center text-gray-500">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+            <p className="text-sm">No alerts or notifications</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Set up price alerts to get notified
+            </p>
+          </div>
         ) : (
-          <div>
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-4 border-b hover:bg-gray-50 ${notification.read ? "" : "bg-blue-50"}`}
-              >
-                <div className="flex items-start">
-                  <div
-                    className={`mt-0.5 mr-3 flex-shrink-0 w-2 h-2 rounded-full ${notification.read ? "bg-gray-300" : "bg-blue-500"}`}
-                  ></div>
-                  <div>
-                    <h4 className="text-sm font-medium">{notification.title}</h4>
-                    <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                  </div>
+          alerts.map((alert) => (
+            <DropdownMenuItem key={alert.id} className="flex-col items-start p-3 cursor-pointer">
+              <div className="flex items-start w-full">
+                <div className={`mt-0.5 mr-3 flex-shrink-0 w-2 h-2 rounded-full ${alert.read ? "bg-gray-300" : "bg-blue-500"}`}></div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium truncate">{alert.title}</h4>
+                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">{alert.message}</p>
+                  <p className="text-xs text-gray-400 mt-1">{alert.time}</p>
                 </div>
               </div>
-            ))}
-          </div>
+            </DropdownMenuItem>
+          ))
         )}
       </div>
 
-      <div className="p-3 border-t text-center">
-        <Button variant="link" size="sm" className="text-indigo-700 h-auto p-0">
-          Mark all as read
-        </Button>
-        <span className="px-2 text-gray-300">|</span>
-        <Button variant="link" size="sm" className="text-indigo-700 h-auto p-0">
-          View all
-        </Button>
-      </div>
-    </div>
+      {alerts.length > 0 && (
+        <>
+          <DropdownMenuSeparator />
+          <div className="p-2 flex justify-center gap-4">
+            <Button variant="link" size="sm" className="text-indigo-600 h-auto p-0 text-xs">
+              Mark all as read
+            </Button>
+            <Button variant="link" size="sm" asChild className="text-indigo-600 h-auto p-0 text-xs">
+              <Link href="/alerts">View all alerts</Link>
+            </Button>
+          </div>
+        </>
+      )}
+    </DropdownMenuContent>
   )
 }

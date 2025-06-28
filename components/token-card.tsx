@@ -1,11 +1,13 @@
 "use client"
 
-import Link from "next/link"
-import Image from "next/image"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowDown, ArrowUp, Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import AlertModal from "@/components/alert-modal"
 import BondStatus from "@/components/bond-status"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { ArrowDown, ArrowUp, Bell, Star } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { useState } from "react"
 
 interface TokenCardProps {
   token: {
@@ -20,8 +22,15 @@ interface TokenCardProps {
 }
 
 export default function TokenCard({ token }: TokenCardProps) {
+  const [alertModalOpen, setAlertModalOpen] = useState(false)
   // Default to 100% bonded if not specified
   const bondedPercentage = token.bondedPercentage ?? 100
+
+  const handleSetAlert = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setAlertModalOpen(true)
+  }
 
   return (
     <Link href={`/token/${token.id}`}>
@@ -37,9 +46,14 @@ export default function TokenCard({ token }: TokenCardProps) {
                 <p className="text-sm text-gray-500 dark:text-gray-400">${token.symbol}</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.preventDefault()}>
-              <Star className="h-4 w-4 text-gray-400 hover:text-yellow-400" />
-            </Button>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSetAlert}>
+                <Bell className="h-4 w-4 text-gray-400 hover:text-blue-400" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.preventDefault()}>
+                <Star className="h-4 w-4 text-gray-400 hover:text-yellow-400" />
+              </Button>
+            </div>
           </div>
 
           <div className="mt-3">
@@ -67,6 +81,15 @@ export default function TokenCard({ token }: TokenCardProps) {
           </div>
         </CardContent>
       </Card>
+
+      <AlertModal
+        isOpen={alertModalOpen}
+        onClose={() => setAlertModalOpen(false)}
+        tokenId={token.id}
+        tokenName={token.name}
+        tokenSymbol={token.symbol}
+        currentBondingPercentage={bondedPercentage}
+      />
     </Link>
   )
 }

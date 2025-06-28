@@ -81,3 +81,21 @@
     text-wrap: balance;
   }
 }
+
+/* Fix white hover color issues */
+@layer components {
+  /* Fix problematic white background hovers that make text invisible */
+  .hover\:bg-white:hover {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+
+  /* Fix table row hover states for better visibility */
+  tr:hover {
+    @apply bg-gray-50 dark:bg-gray-800;
+  }
+
+  /* Override any white background hovers that cause visibility issues */
+  [class*="hover:bg-white"]:hover {
+    @apply bg-gray-100 dark:bg-gray-800 !important;
+  }
+}

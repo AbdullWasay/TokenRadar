@@ -13,11 +13,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
-import { Bell, Menu, Search } from "lucide-react"
+import { Bell, Menu } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 
 interface HeaderProps {
   toggleSidebar: () => void
@@ -26,8 +26,30 @@ interface HeaderProps {
 export default function Header({ toggleSidebar }: HeaderProps) {
   const { user, logout } = useAuth()
   const pathname = usePathname()
+  const [alertCount, setAlertCount] = useState(0)
   const isDashboard =
     pathname.includes("/(dashboard)") || pathname.startsWith("/dashboard") || pathname.startsWith("/token")
+
+  useEffect(() => {
+    // Fetch alert count
+    const fetchAlertCount = async () => {
+      try {
+        const response = await fetch('/api/alerts?triggered=true&active=true')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            setAlertCount(data.data.length)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching alert count:', error)
+      }
+    }
+
+    if (isDashboard) {
+      fetchAlertCount()
+    }
+  }, [isDashboard])
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -37,34 +59,23 @@ export default function Header({ toggleSidebar }: HeaderProps) {
       </Button>
       <div className="flex items-center gap-2">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold">Rader</span>
+          <span className="text-xl font-bold">Token Radar</span>
         </Link>
       </div>
-      <div className="flex-1">
-        {isDashboard && (
-          <form className="hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search tokens..."
-                className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
-              />
-            </div>
-          </form>
-        )}
-      </div>
+      <div className="flex-1"></div>
       <div className="flex items-center gap-4">
         <SimpleWalletConnect />
         <ModeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="rounded-full">
+            <Button variant="outline" size="icon" className="rounded-full relative">
               <Bell className="h-4 w-4" />
               <span className="sr-only">Notifications</span>
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                3
-              </span>
+              {alertCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                  {alertCount > 9 ? '9+' : alertCount}
+                </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
           <NotificationsDropdown />
@@ -73,7 +84,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="/placeholder.svg" alt="User" />
+                <AvatarImage src={user?.profileImage || "/placeholder.svg"} alt="User" />
                 <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-600 text-white font-bold">
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
@@ -86,12 +97,6 @@ export default function Header({ toggleSidebar }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/profile">Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/settings">Settings</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/support">Support</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout}>

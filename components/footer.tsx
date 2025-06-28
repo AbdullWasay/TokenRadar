@@ -1,5 +1,5 @@
-import Link from "next/link"
 import { Facebook, Github, Instagram, Linkedin, Twitter } from "lucide-react"
+import Link from "next/link"
 
 export default function Footer() {
   return (
@@ -22,7 +22,7 @@ export default function Footer() {
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">Rader</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Token Radar</span>
             </Link>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Real-time token tracking and analytics for crypto traders and investors.

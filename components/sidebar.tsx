@@ -1,35 +1,38 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import {
-  BarChart2,
-  Bell,
-  ChevronLeft,
-  ChevronRight,
-  Compass,
-  LayoutDashboard,
-  LineChart,
-  Plus,
-  Settings,
-  Star,
-  User,
-  Wallet,
-  Zap,
-  MessageSquare,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+
+import { PremiumIcon } from "@/components/premium-guard"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import AddTokenModal from "@/components/add-token-modal"
+import { useAuth } from "@/lib/auth-context"
+import { cn } from "@/lib/utils"
+import {
+    Bell,
+    ChevronLeft,
+    ChevronRight,
+    Compass,
+    LayoutDashboard,
+    LineChart,
+    Star,
+    User,
+    Zap
+} from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
+
+import PremiumPopup, { usePremiumPopup } from "@/components/premium-popup"
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { user } = useAuth()
+  const { isOpen: isPremiumPopupOpen, feature, showPremiumPopup, closePremiumPopup } = usePremiumPopup()
   const [collapsed, setCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+
+  const isPremium = user?.subscriptionStatus === 'premium'
+
 
   useEffect(() => {
     const checkMobile = () => {
@@ -56,42 +59,71 @@ export default function Sidebar() {
   }
 
   const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "All Tokens", href: "/all-tokens", icon: Compass },
-    { name: "Watchlist", href: "/watchlist", icon: Star },
-    { name: "Trending", href: "/trending", icon: Zap },
-    { name: "Analytics", href: "/analytics", icon: BarChart2 },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, premium: true },
+    { name: "All Tokens", href: "/all-tokens", icon: Compass, premium: false }, // Free users can view tokens
+    { name: "Watchlist", href: "/watchlist", icon: Star, premium: true },
+    { name: "Overview", href: "/overview", icon: Zap, premium: true },
   ]
 
   const secondaryNavItems = [
-    { name: "Portfolio", href: "/portfolio", icon: Wallet },
-    { name: "Alerts", href: "/alerts", icon: Bell },
-    { name: "Support", href: "/support", icon: MessageSquare },
-    { name: "Profile", href: "/profile", icon: User },
-    { name: "Settings", href: "/settings", icon: Settings },
+    { name: "Alerts", href: "/alerts", icon: Bell, premium: true },
+    { name: "Profile", href: "/profile", icon: User, premium: false }, // Profile accessible to all
   ]
 
-  const renderNavItem = (item: { name: string; href: string; icon: any }) => {
+  const handleNavClick = (item: { name: string; href: string; icon: any; premium?: boolean }) => {
+    if (item.premium && !isPremium) {
+      showPremiumPopup(item.name.toLowerCase())
+    }
+    // For premium users or non-premium features, navigation happens via Link component
+  }
+
+  const renderNavItem = (item: { name: string; href: string; icon: any; premium?: boolean }) => {
     const isActive = pathname === item.href
+    const requiresPremium = item.premium && !isPremium
+
+    const linkContent = (
+      <div className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
+        isActive
+          ? "bg-indigo-600 text-white"
+          : "text-gray-600 hover:bg-indigo-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white",
+      )}
+    >
+      <item.icon size={20} />
+      {!collapsed && (
+        <div className="flex items-center justify-between w-full">
+          <span>{item.name}</span>
+          {item.premium && <PremiumIcon className="w-3 h-3" />}
+        </div>
+      )}
+    </div>
+    )
 
     return (
       <TooltipProvider key={item.name} delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-                isActive
-                  ? "bg-indigo-600 text-white"
-                  : "text-gray-600 hover:bg-indigo-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white",
-              )}
-            >
-              <item.icon size={20} />
-              {!collapsed && <span>{item.name}</span>}
-            </Link>
+            {requiresPremium ? (
+              <div
+                className="cursor-pointer"
+                onClick={() => handleNavClick(item)}
+              >
+                {linkContent}
+              </div>
+            ) : (
+              <Link href={item.href}>
+                {linkContent}
+              </Link>
+            )}
           </TooltipTrigger>
-          {collapsed && <TooltipContent side="right">{item.name}</TooltipContent>}
+          {collapsed && (
+            <TooltipContent side="right">
+              <div className="flex items-center gap-2">
+                <span>{item.name}</span>
+                {item.premium && <PremiumIcon className="w-3 h-3" />}
+              </div>
+            </TooltipContent>
+          )}
         </Tooltip>
       </TooltipProvider>
     )
@@ -117,7 +149,7 @@ export default function Sidebar() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600">
                 <LineChart className="h-4 w-4 text-white" />
               </div>
-              <span className="text-xl font-bold text-indigo-600 dark:text-white">Rader</span>
+              <span className="text-xl font-bold text-indigo-600 dark:text-white">Token Radar</span>
             </Link>
           )}
           {collapsed && (
@@ -147,17 +179,7 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-          {collapsed ? (
-            <Button className="w-full h-10 bg-indigo-600 hover:bg-indigo-700" onClick={() => setIsAddModalOpen(true)}>
-              <Plus size={18} />
-            </Button>
-          ) : (
-            <Button className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => setIsAddModalOpen(true)}>
-              <Plus size={16} className="mr-2" /> Add Token
-            </Button>
-          )}
-        </div>
+
       </aside>
 
       {/* Mobile toggle button */}
@@ -172,7 +194,12 @@ export default function Sidebar() {
         </Button>
       )}
 
-      <AddTokenModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+      {/* Premium Popup */}
+      <PremiumPopup
+        isOpen={isPremiumPopupOpen}
+        onClose={closePremiumPopup}
+        feature={feature}
+      />
     </>
   )
 }

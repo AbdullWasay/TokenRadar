@@ -1,152 +1,79 @@
 "use client"
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { BarChart2, Bell, ChevronDown, Filter, Plus, RefreshCw, Zap } from "lucide-react"
-import TokenCard from "@/components/token-card"
-import NewTokensChart from "@/components/new-tokens-chart"
-import TokenTable from "@/components/token-table"
-import TransactionsTable from "@/components/transactions-table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import WelcomeBanner from "@/components/welcome-banner"
 import MarketOverview from "@/components/market-overview"
 import NewlyBondedTokens from "@/components/newly-bonded-tokens"
+import TokenCard from "@/components/token-card"
+import TokenTable from "@/components/token-table"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import WelcomeBanner from "@/components/welcome-banner"
+import type { FrontendToken, TokensApiResponse } from "@/lib/types"
+import { BarChart2, Bell, ChevronDown, Filter, Plus, RefreshCw, Zap } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
-// Mock data
-const topTokens = [
-  {
-    id: "1",
-    name: "Top Token 01",
-    symbol: "TT1",
-    price: 0.00052153,
-    change: 12.5,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "2",
-    name: "Top Token 01",
-    symbol: "TT1",
-    price: 0.00052153,
-    change: -5.2,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "3",
-    name: "Top Token 01",
-    symbol: "TT1",
-    price: 0.00052153,
-    change: 8.7,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-]
 
-const featuredTokens = [
-  {
-    id: "1",
-    name: "Greed3",
-    symbol: "Greed3",
-    marketCap: "$71,867",
-    created: "02/20/2023",
-    bonded: "02/20/2023",
-    fiveMin: "-0.31",
-    oneHour: "-1.78",
-    sixHour: "-0.31",
-    twentyFourHour: "0.3",
-    sevenDay: "39.27",
-    chart: "up",
-  },
-  {
-    id: "2",
-    name: "Greed3",
-    symbol: "Greed3",
-    marketCap: "$71,867",
-    created: "02/20/2023",
-    bonded: "02/20/2023",
-    fiveMin: "-0.31",
-    oneHour: "-1.78",
-    sixHour: "-0.31",
-    twentyFourHour: "0.3",
-    sevenDay: "39.27",
-    chart: "down",
-  },
-  {
-    id: "3",
-    name: "Greed3",
-    symbol: "Greed3",
-    marketCap: "$71,867",
-    created: "02/20/2023",
-    bonded: "02/20/2023",
-    fiveMin: "-0.31",
-    oneHour: "-1.78",
-    sixHour: "-0.31",
-    twentyFourHour: "0.3",
-    sevenDay: "39.27",
-    chart: "down",
-  },
-]
-
-const transactions = [
-  {
-    id: "1",
-    date: "02/21/2023, 01:40:52 AM",
-    owner: "Alex 001",
-    type: "Sale",
-    tradedToken: "01",
-    usd: "753,099,856",
-    tokenAmount: "-85.01",
-    hash: "100",
-  },
-  {
-    id: "2",
-    date: "02/21/2023, 01:40:52 AM",
-    owner: "Alex 001",
-    type: "Sale",
-    tradedToken: "01",
-    usd: "753,099,856",
-    tokenAmount: "-85.01",
-    hash: "100",
-  },
-  {
-    id: "3",
-    date: "02/21/2023, 01:40:52 AM",
-    owner: "Alex 001",
-    type: "Sale",
-    tradedToken: "01",
-    usd: "753,099,856",
-    tokenAmount: "-85.01",
-    hash: "100",
-  },
-  {
-    id: "4",
-    date: "02/21/2023, 01:40:52 AM",
-    owner: "Alex 001",
-    type: "Sale",
-    tradedToken: "01",
-    usd: "753,099,856",
-    tokenAmount: "-85.01",
-    hash: "100",
-  },
-  {
-    id: "5",
-    date: "02/21/2023, 01:40:52 AM",
-    owner: "Alex 001",
-    type: "Sale",
-    tradedToken: "01",
-    usd: "753,099,856",
-    tokenAmount: "-85.01",
-    hash: "100",
-  },
-]
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("all")
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [tokens, setTokens] = useState<FrontendToken[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch real token data
+  const fetchTokens = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/tokens', {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: TokensApiResponse = await response.json()
+
+      if (data.success && data.data) {
+        setTokens(data.data)
+        setError(null)
+      } else {
+        throw new Error(data.message || 'Failed to fetch tokens')
+      }
+    } catch (error: any) {
+      console.error('Error fetching tokens:', error)
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTokens() // Load only when dashboard is accessed
+  }, [])
 
   const handleRefresh = () => {
     setIsRefreshing(true)
-    setTimeout(() => setIsRefreshing(false), 1000)
+    fetchTokens().finally(() => setIsRefreshing(false))
   }
+
+  // Transform tokens for different sections
+  const topTokens = tokens.slice(0, 3).map(token => ({
+    id: token.id,
+    name: token.name,
+    symbol: token.symbol,
+    price: 0.00000001, // We'll need to get real price from individual token API
+    change: parseFloat(token.twentyFourHour) || 0,
+    image: token.image || "/placeholder.svg?height=40&width=40",
+    bondedPercentage: token.bondedPercentage
+  }))
+
+  const featuredTokens = tokens.slice(0, 6)
 
   return (
     <div className="space-y-6">
@@ -154,7 +81,7 @@ export default function Dashboard() {
 
       <div className="flex flex-col md:flex-row gap-6">
         <div className="md:w-2/3">
-          <MarketOverview />
+          <MarketOverview tokens={tokens} loading={loading} />
         </div>
 
         <div className="md:w-1/3">
@@ -182,7 +109,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <NewlyBondedTokens />
+      <NewlyBondedTokens tokens={tokens} loading={loading} />
 
       <div>
         <div className="flex justify-between items-center mb-4">
@@ -192,11 +119,31 @@ export default function Dashboard() {
             <span className="ml-2">Refresh</span>
           </Button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {topTokens.map((token) => (
-            <TokenCard key={token.id} token={token} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-4">
+                  <div className="h-16 bg-gray-200 rounded"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-500 mb-4">Error loading tokens: {error}</p>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {topTokens.map((token) => (
+              <TokenCard key={token.id} token={token} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -218,8 +165,18 @@ export default function Dashboard() {
               </DropdownMenu>
             </div>
           </CardHeader>
-          <CardContent className="p-4">
-            <NewTokensChart />
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="p-4">
+                <div className="animate-pulse space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <TokenTable tokens={featuredTokens.slice(0, 3)} />
+            )}
           </CardContent>
         </Card>
 
@@ -234,7 +191,17 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <TokenTable tokens={featuredTokens.slice(0, 2)} />
+            {loading ? (
+              <div className="p-4">
+                <div className="animate-pulse space-y-3">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <TokenTable tokens={featuredTokens.slice(0, 2)} />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -242,38 +209,83 @@ export default function Dashboard() {
       <Card>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-lg font-semibold">Featured Trade</CardTitle>
+            <CardTitle className="text-lg font-semibold">New Tokens</CardTitle>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
               <TabsList className="bg-muted h-8">
                 <TabsTrigger value="all" className="text-xs h-7">
                   All
                 </TabsTrigger>
-                <TabsTrigger value="trending" className="text-xs h-7">
-                  Trending
+                <TabsTrigger value="bonded" className="text-xs h-7">
+                  Bonded
                 </TabsTrigger>
-                <TabsTrigger value="new" className="text-xs h-7">
-                  New
+                <TabsTrigger value="unbonded" className="text-xs h-7">
+                  Unbonded
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <TokenTable tokens={featuredTokens} />
+          {loading ? (
+            <div className="p-4">
+              <div className="animate-pulse space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-12 bg-gray-200 rounded"></div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <TokenTable tokens={
+              activeTab === "bonded"
+                ? featuredTokens.filter(token => token.bonded)
+                : activeTab === "unbonded"
+                ? featuredTokens.filter(token => !token.bonded)
+                : featuredTokens
+            } />
+          )}
         </CardContent>
       </Card>
 
+      {/* Real-time Token Statistics */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-lg font-semibold">Transactions</CardTitle>
-            <Button variant="outline" size="sm">
-              View All
+            <CardTitle className="text-lg font-semibold">Live Statistics</CardTitle>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/all-tokens">View All Tokens</Link>
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <TransactionsTable transactions={transactions} />
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{tokens.length}</div>
+              <div className="text-sm text-gray-500">Total Tokens</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {tokens.filter(token => token.bonded).length}
+              </div>
+              <div className="text-sm text-gray-500">Bonded Tokens</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {tokens.filter(token => !token.bonded).length}
+              </div>
+              <div className="text-sm text-gray-500">Unbonded Tokens</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {tokens.filter(token => {
+                  const created = new Date(token.created)
+                  const now = new Date()
+                  const diffHours = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
+                  return diffHours <= 24
+                }).length}
+              </div>
+              <div className="text-sm text-gray-500">New (24h)</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

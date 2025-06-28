@@ -2,6 +2,8 @@
 
 import type React from "react"
 
+import Footer from "@/components/footer"
+import Navbar from "@/components/landing-navbar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -120,7 +122,9 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      <div className="flex-1 flex pt-4 pb-8">
       {/* Left side with gradient background and logo */}
       <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-indigo-900 via-purple-800 to-purple-600 relative p-8 items-center justify-center">
         <div className="max-w-md mx-auto text-center">
@@ -335,6 +339,8 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   )
 }

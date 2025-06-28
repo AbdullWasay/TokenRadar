@@ -1,131 +1,28 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Bell, BellOff, Clock, Edit, MoreHorizontal, Plus, Trash2 } from "lucide-react"
-import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import BondAlerts from "@/components/bond-alerts"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { Alert, AlertsApiResponse, FrontendToken, TokensApiResponse } from "@/lib/types"
+import { formatDistanceToNow } from "date-fns"
+import { Bell, BellOff, Clock, Edit, MoreHorizontal, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
 
-// Mock data
-const priceAlerts = [
-  {
-    id: "1",
-    token: {
-      name: "Bitcoin",
-      symbol: "BTC",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    condition: "above",
-    price: 70000,
-    created: "2 days ago",
-    active: true,
-  },
-  {
-    id: "2",
-    token: {
-      name: "Ethereum",
-      symbol: "ETH",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    condition: "below",
-    price: 3000,
-    created: "1 week ago",
-    active: true,
-  },
-  {
-    id: "3",
-    token: {
-      name: "Solana",
-      symbol: "SOL",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    condition: "above",
-    price: 150,
-    created: "3 days ago",
-    active: false,
-  },
-]
-
-const percentageAlerts = [
-  {
-    id: "4",
-    token: {
-      name: "Cardano",
-      symbol: "ADA",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    condition: "increases",
-    percentage: 10,
-    timeframe: "1h",
-    created: "5 days ago",
-    active: true,
-  },
-  {
-    id: "5",
-    token: {
-      name: "Dogecoin",
-      symbol: "DOGE",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    condition: "decreases",
-    percentage: 15,
-    timeframe: "24h",
-    created: "2 days ago",
-    active: true,
-  },
-]
-
-const recentAlerts = [
-  {
-    id: "6",
-    token: {
-      name: "Bitcoin",
-      symbol: "BTC",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    message: "Bitcoin price is above $65,000",
-    time: "2 hours ago",
-    read: false,
-  },
-  {
-    id: "7",
-    token: {
-      name: "Ethereum",
-      symbol: "ETH",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    message: "Ethereum increased by 5% in the last hour",
-    time: "5 hours ago",
-    read: true,
-  },
-  {
-    id: "8",
-    token: {
-      name: "Solana",
-      symbol: "SOL",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    message: "Solana decreased by 8% in the last 24 hours",
-    time: "1 day ago",
-    read: true,
-  },
-]
+// Real data will be fetched from MongoDB via API
 
 export default function AlertsPage() {
   const [activeTab, setActiveTab] = useState("bond")
@@ -138,6 +35,63 @@ export default function AlertsPage() {
   const [timeframe, setTimeframe] = useState("1h")
   const [bondThreshold, setBondThreshold] = useState("90")
 
+  // Real data state
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [tokens, setTokens] = useState<FrontendToken[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [editingAlert, setEditingAlert] = useState<Alert | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  // Fetch alerts from API
+  const fetchAlerts = async () => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setError('Please log in to view alerts')
+        return
+      }
+
+      const response = await fetch('/api/alerts', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data: AlertsApiResponse = await response.json()
+      if (data.success && data.data) {
+        setAlerts(data.data)
+      } else {
+        setError(data.error || 'Failed to fetch alerts')
+      }
+    } catch (error: any) {
+      setError('Failed to fetch alerts')
+      console.error('Error fetching alerts:', error)
+    }
+  }
+
+  // Fetch tokens for dropdown
+  const fetchTokens = async () => {
+    try {
+      const response = await fetch('/api/tokens')
+      const data: TokensApiResponse = await response.json()
+      if (data.success && data.data) {
+        setTokens(data.data)
+      }
+    } catch (error: any) {
+      console.error('Error fetching tokens:', error)
+    }
+  }
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      await Promise.all([fetchAlerts(), fetchTokens()])
+      setLoading(false)
+    }
+    loadData()
+  }, [])
+
   const handleCreateAlert = () => {
     // Here you would handle the alert creation
     setIsCreateAlertOpen(false)
@@ -148,7 +102,90 @@ export default function AlertsPage() {
     setPercentage("")
     setTimeframe("1h")
     setBondThreshold("90")
+    // Refresh alerts
+    fetchAlerts()
   }
+
+  const handleDeleteAlert = async (alertId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) return
+
+      const response = await fetch(`/api/alerts/${alertId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        setAlerts(alerts.filter(alert => alert.id !== alertId))
+      }
+    } catch (error: any) {
+      console.error('Error deleting alert:', error)
+    }
+  }
+
+  const handleToggleAlert = async (alertId: string, isActive: boolean) => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) return
+
+      const response = await fetch(`/api/alerts/${alertId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive })
+      })
+
+      if (response.ok) {
+        setAlerts(alerts.map(alert =>
+          alert.id === alertId ? { ...alert, isActive } : alert
+        ))
+      }
+    } catch (error: any) {
+      console.error('Error updating alert:', error)
+    }
+  }
+
+  const handleEditAlert = (alert: Alert) => {
+    setEditingAlert(alert)
+    setIsEditModalOpen(true)
+  }
+
+  const handleUpdateAlert = async (alertId: string, updates: Partial<Alert>) => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) return
+
+      const response = await fetch(`/api/alerts/${alertId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updates)
+      })
+
+      if (response.ok) {
+        setAlerts(alerts.map(alert =>
+          alert.id === alertId ? { ...alert, ...updates } : alert
+        ))
+        setIsEditModalOpen(false)
+        setEditingAlert(null)
+      }
+    } catch (error: any) {
+      console.error('Error updating alert:', error)
+    }
+  }
+
+  // Filter alerts by type
+  const priceAlerts = alerts.filter(alert => alert.alertType === 'price')
+  const percentageAlerts = alerts.filter(alert => alert.alertType === 'percentage')
+  const bondAlerts = alerts.filter(alert => alert.alertType === 'bond')
+  const recentAlerts = alerts.filter(alert => alert.isTriggered).slice(0, 10)
 
   return (
     <div className="space-y-6">
@@ -171,7 +208,122 @@ export default function AlertsPage() {
         </TabsList>
       </Tabs>
 
-      {activeTab === "bond" && <BondAlerts />}
+      {activeTab === "bond" && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Bond Alerts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-pulse space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/6"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : bondAlerts.length === 0 ? (
+              <div className="text-center py-12">
+                <Bell className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                <h3 className="text-lg font-medium mb-2">No bond alerts</h3>
+                <p className="text-gray-500 dark:text-gray-400">Create alerts to get notified when tokens reach bonding milestones</p>
+                <Button className="mt-4" onClick={() => setIsCreateAlertOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Create Alert
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-800">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Token
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Condition
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Threshold
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Created
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Status
+                      </th>
+                      <th className="text-right py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bondAlerts.map((alert) => (
+                      <tr
+                        key={alert.id}
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="flex items-center">
+                            <div className="h-8 w-8 rounded-full overflow-hidden mr-3 bg-gray-100 dark:bg-gray-800">
+                              <div className="w-full h-full bg-gray-600 rounded-full"></div>
+                            </div>
+                            <div>
+                              <div className="font-medium">{alert.tokenName}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">{alert.tokenSymbol}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <Badge variant="outline" className="capitalize">
+                            {alert.condition}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4">{alert.threshold}%</td>
+                        <td className="py-4 px-4">{formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true })}</td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center">
+                            <Switch
+                              checked={alert.isActive}
+                              onCheckedChange={(checked) => handleToggleAlert(alert.id, checked)}
+                            />
+                            <span className="ml-2">{alert.isActive ? "Active" : "Inactive"}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEditAlert(alert)}>
+                                <Edit className="h-4 w-4 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-500"
+                                onClick={() => handleDeleteAlert(alert.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {activeTab === "price" && (
         <Card>
@@ -224,16 +376,11 @@ export default function AlertsPage() {
                         <td className="py-4 px-4">
                           <div className="flex items-center">
                             <div className="h-8 w-8 rounded-full overflow-hidden mr-3 bg-gray-100 dark:bg-gray-800">
-                              <Image
-                                src={alert.token.image || "/placeholder.svg"}
-                                alt={alert.token.name}
-                                width={32}
-                                height={32}
-                              />
+                              <div className="w-full h-full bg-gray-600 rounded-full"></div>
                             </div>
                             <div>
-                              <div className="font-medium">{alert.token.name}</div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{alert.token.symbol}</div>
+                              <div className="font-medium">{alert.tokenName}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">{alert.tokenSymbol}</div>
                             </div>
                           </div>
                         </td>
@@ -242,12 +389,15 @@ export default function AlertsPage() {
                             {alert.condition}
                           </Badge>
                         </td>
-                        <td className="py-4 px-4">${alert.price.toLocaleString()}</td>
-                        <td className="py-4 px-4">{alert.created}</td>
+                        <td className="py-4 px-4">${alert.threshold.toLocaleString()}</td>
+                        <td className="py-4 px-4">{formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true })}</td>
                         <td className="py-4 px-4">
                           <div className="flex items-center">
-                            <Switch checked={alert.active} />
-                            <span className="ml-2">{alert.active ? "Active" : "Inactive"}</span>
+                            <Switch
+                              checked={alert.isActive}
+                              onCheckedChange={(checked) => handleToggleAlert(alert.id, checked)}
+                            />
+                            <span className="ml-2">{alert.isActive ? "Active" : "Inactive"}</span>
                           </div>
                         </td>
                         <td className="py-4 px-4 text-right">
@@ -258,10 +408,13 @@ export default function AlertsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditAlert(alert)}>
                                 <Edit className="h-4 w-4 mr-2" /> Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-500">
+                              <DropdownMenuItem
+                                className="text-red-500"
+                                onClick={() => handleDeleteAlert(alert.id)}
+                              >
                                 <Trash2 className="h-4 w-4 mr-2" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -331,16 +484,11 @@ export default function AlertsPage() {
                         <td className="py-4 px-4">
                           <div className="flex items-center">
                             <div className="h-8 w-8 rounded-full overflow-hidden mr-3 bg-gray-100 dark:bg-gray-800">
-                              <Image
-                                src={alert.token.image || "/placeholder.svg"}
-                                alt={alert.token.name}
-                                width={32}
-                                height={32}
-                              />
+                              <div className="w-full h-full bg-gray-600 rounded-full"></div>
                             </div>
                             <div>
-                              <div className="font-medium">{alert.token.name}</div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{alert.token.symbol}</div>
+                              <div className="font-medium">{alert.tokenName}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">{alert.tokenSymbol}</div>
                             </div>
                           </div>
                         </td>
@@ -349,13 +497,16 @@ export default function AlertsPage() {
                             {alert.condition}
                           </Badge>
                         </td>
-                        <td className="py-4 px-4">{alert.percentage}%</td>
-                        <td className="py-4 px-4">{alert.timeframe}</td>
-                        <td className="py-4 px-4">{alert.created}</td>
+                        <td className="py-4 px-4">{alert.threshold}%</td>
+                        <td className="py-4 px-4">{alert.timeframe || 'N/A'}</td>
+                        <td className="py-4 px-4">{formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true })}</td>
                         <td className="py-4 px-4">
                           <div className="flex items-center">
-                            <Switch checked={alert.active} />
-                            <span className="ml-2">{alert.active ? "Active" : "Inactive"}</span>
+                            <Switch
+                              checked={alert.isActive}
+                              onCheckedChange={(checked) => handleToggleAlert(alert.id, checked)}
+                            />
+                            <span className="ml-2">{alert.isActive ? "Active" : "Inactive"}</span>
                           </div>
                         </td>
                         <td className="py-4 px-4 text-right">
@@ -366,10 +517,13 @@ export default function AlertsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditAlert(alert)}>
                                 <Edit className="h-4 w-4 mr-2" /> Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-500">
+                              <DropdownMenuItem
+                                className="text-red-500"
+                                onClick={() => handleDeleteAlert(alert.id)}
+                              >
                                 <Trash2 className="h-4 w-4 mr-2" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -415,25 +569,23 @@ export default function AlertsPage() {
                   >
                     <div className="flex items-start">
                       <div className="h-10 w-10 rounded-full overflow-hidden mr-3 bg-gray-100 dark:bg-gray-800">
-                        <Image
-                          src={alert.token.image || "/placeholder.svg"}
-                          alt={alert.token.name}
-                          width={40}
-                          height={40}
-                        />
+                        <div className="w-full h-full bg-gray-600 rounded-full"></div>
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="font-medium">
-                              {alert.token.name} ({alert.token.symbol})
+                              {alert.tokenName} ({alert.tokenSymbol})
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">{alert.message}</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Alert triggered: {alert.condition} {alert.threshold}
+                              {alert.alertType === 'price' ? ' USD' : alert.alertType === 'percentage' ? '%' : '% bonded'}
+                            </div>
                           </div>
                           <div className="flex items-center">
                             <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                               <Clock className="h-3 w-3 mr-1" />
-                              {alert.time}
+                              {alert.triggeredAt ? formatDistanceToNow(new Date(alert.triggeredAt), { addSuffix: true }) : 'Recently'}
                             </div>
                             <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
                               <MoreHorizontal className="h-4 w-4" />
@@ -577,6 +729,75 @@ export default function AlertsPage() {
             </Button>
             <Button onClick={handleCreateAlert} className="bg-indigo-600 hover:bg-indigo-700">
               Create Alert
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Alert Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Alert</DialogTitle>
+            <DialogDescription>
+              Update your alert settings for {editingAlert?.tokenName}
+            </DialogDescription>
+          </DialogHeader>
+          {editingAlert && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-threshold">
+                  {editingAlert.alertType === 'price' ? 'Price Threshold (USD)' :
+                   editingAlert.alertType === 'percentage' ? 'Percentage Threshold (%)' :
+                   'Bonding Threshold (%)'}
+                </Label>
+                <Input
+                  id="edit-threshold"
+                  type="number"
+                  step="any"
+                  defaultValue={editingAlert.threshold}
+                  onChange={(e) => {
+                    if (editingAlert) {
+                      setEditingAlert({
+                        ...editingAlert,
+                        threshold: parseFloat(e.target.value) || 0
+                      })
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="edit-active"
+                  checked={editingAlert.isActive}
+                  onCheckedChange={(checked) => {
+                    if (editingAlert) {
+                      setEditingAlert({
+                        ...editingAlert,
+                        isActive: checked
+                      })
+                    }
+                  }}
+                />
+                <Label htmlFor="edit-active">Active</Label>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingAlert) {
+                  handleUpdateAlert(editingAlert.id, {
+                    threshold: editingAlert.threshold,
+                    isActive: editingAlert.isActive
+                  })
+                }
+              }}
+            >
+              Update Alert
             </Button>
           </DialogFooter>
         </DialogContent>

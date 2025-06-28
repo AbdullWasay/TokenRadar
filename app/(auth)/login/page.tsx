@@ -2,6 +2,8 @@
 
 import type React from "react"
 
+import Footer from "@/components/footer"
+import Navbar from "@/components/landing-navbar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
@@ -19,7 +21,7 @@ const loginSchema = z.object({
 })
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -57,12 +59,20 @@ export default function LoginPage() {
       const success = await login(formData.email, formData.password)
 
       if (success) {
-        // Success
+        // Get user data from auth context after successful login
+        await new Promise(resolve => setTimeout(resolve, 100)) // Small delay to ensure auth context is updated
+
+        // Check user subscription status from auth context
+        const currentUser = user // This should be updated by the login function
+        const isPremium = currentUser?.subscriptionStatus === 'premium'
+
         toast({
           title: "Login successful",
-          description: "Redirecting to dashboard...",
+          description: isPremium ? "Redirecting to dashboard..." : "Redirecting to tokens...",
         })
-        router.push("/dashboard")
+
+        // Redirect based on subscription status
+        router.push(isPremium ? "/dashboard" : "/all-tokens")
       } else {
         // Login failed
         toast({
@@ -93,7 +103,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      <div className="flex-1 flex pt-4 pb-8">
       {/* Left side with gradient background and logo */}
       <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-indigo-900 via-purple-800 to-purple-600 relative p-8 items-center justify-center">
         <div className="max-w-md mx-auto text-center">
@@ -150,7 +162,7 @@ export default function LoginPage() {
 
       {/* Right side with login form */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md mt-4">
           <h2 className="text-3xl font-bold text-center mb-8">Log in</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -248,6 +260,8 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   )
 }

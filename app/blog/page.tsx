@@ -1,10 +1,10 @@
-import Image from "next/image"
+import Footer from "@/components/footer"
+import Navbar from "@/components/landing-navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import Footer from "@/components/footer"
-import Navbar from "@/components/landing-navbar"
 import { CalendarDays, ChevronRight, Search } from "lucide-react"
+import Image from "next/image"
 
 // Mock blog post data
 const featuredPost = {
@@ -111,7 +111,7 @@ export default function BlogPage() {
       <main className="flex-1 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4 py-12">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Rader Blog</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Token Radar Blog</h1>
             <p className="text-xl text-gray-600 dark:text-gray-400">
               Insights, analyses, and guides for cryptocurrency traders and enthusiasts
             </p>

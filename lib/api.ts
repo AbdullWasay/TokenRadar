@@ -128,6 +128,13 @@ class ApiClient {
   isAuthenticated(): boolean {
     return !!this.getToken()
   }
+
+  // Token methods
+  async getTokens(): Promise<any> {
+    return this.request<any>('/tokens', {
+      method: 'GET',
+    })
+  }
 }
 
 // Create a singleton instance

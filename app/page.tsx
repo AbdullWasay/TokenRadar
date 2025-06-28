@@ -1,12 +1,17 @@
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, BarChart2, CheckCircle, Globe, Shield, Zap } from "lucide-react"
+"use client"
+
 import Footer from "@/components/footer"
 import Navbar from "@/components/landing-navbar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Button } from "@/components/ui/button"
+import { ArrowRight, BarChart2, CheckCircle, Globe, Shield, Zap } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
+  const router = useRouter()
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -22,7 +27,7 @@ export default function LandingPage() {
               </h1>
               <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-lg">
                 Real-time tracking, advanced analytics, and powerful alerts for cryptocurrency tokens. Stay ahead of the
-                market with Rader.
+                market with Token Radar.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
@@ -106,7 +111,7 @@ export default function LandingPage() {
       <section className="py-20 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How Rader Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">How Token Radar Works</h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Track tokens, set alerts, and stay ahead of the market in three simple steps
             </p>
@@ -252,14 +257,14 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-md overflow-hidden">
               <div className="p-6">
                 <h3 className="text-xl font-semibold mb-2">Free</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">For casual traders</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">$0</span>
-                  <span className="text-gray-600 dark:text-gray-400">/month</span>
+                  <span className="text-4xl font-bold">Free</span>
+                  <span className="text-gray-600 dark:text-gray-400">/forever</span>
                 </div>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center">
@@ -268,16 +273,17 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Limited watchlist (5 tokens)</span>
+                    <span className="text-gray-600 dark:text-gray-300">Limited market data</span>
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Daily price alerts</span>
+                    <span className="text-gray-600 dark:text-gray-300">Community support</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    <span className="text-gray-600 dark:text-gray-300">Basic analytics</span>
                   </li>
                 </ul>
-                <Button className="w-full" variant="outline">
-                  <Link href="/signup">Get Started</Link>
-                </Button>
               </div>
             </div>
 
@@ -286,75 +292,51 @@ export default function LandingPage() {
                 POPULAR
               </div>
               <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Pro</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">For active traders</p>
+                <h3 className="text-xl font-semibold mb-2">Premium</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">For serious traders</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">$19</span>
+                  <span className="text-4xl font-bold">2 SOL</span>
                   <span className="text-gray-600 dark:text-gray-400">/month</span>
                 </div>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Advanced real-time tracking</span>
+                    <span className="text-gray-600 dark:text-gray-300">Advanced token analytics</span>
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Unlimited watchlists</span>
+                    <span className="text-gray-600 dark:text-gray-300">Real-time price alerts</span>
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Instant price alerts</span>
+                    <span className="text-gray-600 dark:text-gray-300">Priority customer support</span>
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Portfolio tracking</span>
+                    <span className="text-gray-600 dark:text-gray-300">Unlimited token tracking</span>
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Historical data</span>
+                    <span className="text-gray-600 dark:text-gray-300">Advanced market insights</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    <span className="text-gray-600 dark:text-gray-300">Portfolio management tools</span>
                   </li>
                 </ul>
-                <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
-                  <Link href="/signup">Get Started</Link>
-                </Button>
               </div>
             </div>
+          </div>
 
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-md overflow-hidden">
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Enterprise</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">For professional traders</p>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold">$49</span>
-                  <span className="text-gray-600 dark:text-gray-400">/month</span>
-                </div>
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Everything in Pro</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">API access</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Advanced analytics</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Custom reports</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    <span className="text-gray-600 dark:text-gray-300">Priority support</span>
-                  </li>
-                </ul>
-                <Button className="w-full" variant="outline">
-                  <Link href="/signup">Contact Sales</Link>
-                </Button>
-              </div>
-            </div>
+          {/* Single Get Started Button */}
+          <div className="text-center mt-12">
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-3"
+              onClick={() => router.push('/login')}
+            >
+              Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
@@ -379,7 +361,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="text-gray-600 dark:text-gray-300 mb-6">
-                "Rader has completely transformed how I track my crypto investments. The real-time alerts have helped me
+                "Token Radar has completely transformed how I track my crypto investments. The real-time alerts have helped me
                 catch several profitable opportunities."
               </p>
               <div className="flex items-center">
@@ -425,7 +407,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="text-gray-600 dark:text-gray-300 mb-6">
-                "As a fund manager, I need reliable data fast. Rader provides everything I need in one dashboard, saving
+                "As a fund manager, I need reliable data fast. Token Radar provides everything I need in one dashboard, saving
                 me hours of research time."
               </p>
               <div className="flex items-center">
@@ -474,10 +456,10 @@ export default function LandingPage() {
             <Accordion type="single" collapsible className="space-y-4">
               <AccordionItem value="item-1" className="bg-white dark:bg-gray-900 border rounded-lg overflow-hidden">
                 <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                  What makes Rader different from other token trackers?
+                  What makes Token Radar different from other token trackers?
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-4">
-                  Rader combines real-time token tracking with advanced analytics and AI-powered insights. Our platform
+                  Token Radar combines real-time token tracking with advanced analytics and AI-powered insights. Our platform
                   offers faster updates, more comprehensive data, and a more intuitive user experience than traditional
                   tracking tools.
                 </AccordionContent>

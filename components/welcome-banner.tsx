@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { X } from "lucide-react"
+import { useState } from "react"
 
 export default function WelcomeBanner() {
   const [dismissed, setDismissed] = useState(false)
@@ -20,10 +20,7 @@ export default function WelcomeBanner() {
               Track your favorite tokens, set up alerts, and stay ahead of the market with real-time data and analytics.
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <Button variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-0">
-              Take Tour
-            </Button>
+          <div className="flex items-center">
             <Button
               variant="ghost"
               size="icon"

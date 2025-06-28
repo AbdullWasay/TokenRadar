@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useWallet } from "@/lib/wallet-context"
 import { AlertCircle, ArrowRight, CheckCircle2, Copy, ExternalLink, Loader2, Wallet } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function SolanaPaymentPage() {
   const router = useRouter()

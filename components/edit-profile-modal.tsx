@@ -16,13 +16,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
+import { Upload } from "lucide-react"
 import Image from "next/image"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
 
 interface EditProfileModalProps {
   isOpen: boolean
   onClose: () => void
+  onProfileUpdate?: (profile: { name: string; email: string; profileImage?: string }) => void
   profile: {
     name: string
     email: string
@@ -35,7 +37,7 @@ const profileSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 })
 
-export default function EditProfileModal({ isOpen, onClose, profile }: EditProfileModalProps) {
+export default function EditProfileModal({ isOpen, onClose, onProfileUpdate, profile }: EditProfileModalProps) {
   const { user, checkAuth } = useAuth()
   const [formData, setFormData] = useState({
     name: profile.name,
@@ -43,6 +45,9 @@ export default function EditProfileModal({ isOpen, onClose, profile }: EditProfi
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [profileImage, setProfileImage] = useState<string>(profile.image || "")
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   // Update form data when profile changes
@@ -51,7 +56,46 @@ export default function EditProfileModal({ isOpen, onClose, profile }: EditProfi
       name: profile.name,
       email: profile.email,
     })
-  }, [profile.name, profile.email])
+    setProfileImage(profile.image || "")
+  }, [profile.name, profile.email, profile.image])
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      setUploadingImage(true)
+
+      // Upload to Cloudinary via API
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image')
+      }
+
+      const data = await response.json()
+      setProfileImage(data.url)
+
+      toast({
+        title: "Success!",
+        description: "Profile image updated successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -76,12 +120,24 @@ export default function EditProfileModal({ isOpen, onClose, profile }: EditProfi
       // Validate form data
       profileSchema.parse(formData)
 
-      // Call update profile API
-      const response = await apiClient.updateProfile(formData)
+      // Call update profile API with image
+      const response = await apiClient.updateProfile({
+        ...formData,
+        profileImage: profileImage
+      })
 
       if (response.success) {
         // Update auth context with new user data
         await checkAuth()
+
+        // Call profile update callback
+        if (onProfileUpdate) {
+          onProfileUpdate({
+            name: formData.name,
+            email: formData.email,
+            profileImage: profileImage
+          })
+        }
 
         // Success
         toast({
@@ -130,38 +186,43 @@ export default function EditProfileModal({ isOpen, onClose, profile }: EditProfi
           <div className="grid gap-4 py-4">
             <div className="flex justify-center mb-4">
               <div className="relative">
-                <div className="w-24 h-24 rounded-full border-4 border-yellow-400 overflow-hidden bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
-                  {profile.name ? (
-                    <span className="text-2xl font-bold text-white">
-                      {profile.name.charAt(0).toUpperCase()}
-                    </span>
-                  ) : (
+                <div className="w-24 h-24 rounded-full border-4 border-yellow-400 overflow-hidden">
+                  {profileImage ? (
                     <Image
-                      src="/placeholder.svg"
-                      alt="User"
-                      width={100}
-                      height={100}
-                      className="object-cover"
+                      src={profileImage}
+                      alt="Profile"
+                      width={96}
+                      height={96}
+                      className="object-cover w-full h-full"
                     />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">
+                        {profile.name?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    </div>
                   )}
                 </div>
-                <Button size="sm" className="absolute bottom-0 right-0 rounded-full h-8 w-8 p-0 bg-indigo-700">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
+                <Button
+                  size="sm"
+                  className="absolute bottom-0 right-0 rounded-full h-8 w-8 p-0 bg-indigo-700"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  type="button"
+                >
+                  {uploadingImage ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Upload size={16} />
+                  )}
                 </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
               </div>
             </div>
 

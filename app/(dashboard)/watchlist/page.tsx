@@ -1,172 +1,210 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Plus, Search, SlidersHorizontal, Star, Trash2 } from "lucide-react"
-import TokenCard from "@/components/token-card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import AddTokenModal from "@/components/add-token-modal"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { FrontendToken, TokensApiResponse } from "@/lib/types"
+import { Eye, TrendingDown, TrendingUp } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
-// Mock data
-const watchlistTokens = [
-  {
-    id: "1",
-    name: "Bitcoin",
-    symbol: "BTC",
-    price: 65432.1,
-    change: 2.5,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "2",
-    name: "Ethereum",
-    symbol: "ETH",
-    price: 3456.78,
-    change: -1.2,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "3",
-    name: "Solana",
-    symbol: "SOL",
-    price: 145.67,
-    change: 5.8,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "4",
-    name: "Cardano",
-    symbol: "ADA",
-    price: 0.58,
-    change: -0.7,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "5",
-    name: "Dogecoin",
-    symbol: "DOGE",
-    price: 0.12345,
-    change: 12.3,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "6",
-    name: "Shiba Inu",
-    symbol: "SHIB",
-    price: 0.00002345,
-    change: 8.7,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-]
+// Helper function to get price change color
+function getPriceChangeColor(change: string): string {
+  if (change === "N/A") return "text-gray-400"
+  const numChange = parseFloat(change)
+  return numChange >= 0 ? "text-green-500" : "text-red-500"
+}
+
+// Helper function to format price change
+function formatPriceChange(change: string): string {
+  if (change === "N/A") return "N/A"
+  const numChange = parseFloat(change)
+  return `${numChange >= 0 ? "+" : ""}${change}%`
+}
+
+// Helper function to render mini chart
+function renderMiniChart(change: string) {
+  const numChange = parseFloat(change)
+  if (isNaN(numChange)) {
+    return <div className="w-16 h-8 bg-gray-100 rounded"></div>
+  }
+  
+  const isPositive = numChange >= 0
+  return (
+    <div className="w-16 h-8 flex items-center justify-center">
+      {isPositive ? (
+        <TrendingUp className="w-4 h-4 text-green-500" />
+      ) : (
+        <TrendingDown className="w-4 h-4 text-red-500" />
+      )}
+    </div>
+  )
+}
 
 export default function WatchlistPage() {
-  const [activeTab, setActiveTab] = useState("all")
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [tokens, setTokens] = useState<FrontendToken[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredTokens = watchlistTokens.filter(
-    (token) =>
-      token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      token.symbol.toLowerCase().includes(searchQuery.toLowerCase()),
+  // Fetch real token data
+  useEffect(() => {
+    const fetchTokens = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/tokens', {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data: TokensApiResponse = await response.json()
+
+        if (data.success && data.data) {
+          setTokens(data.data)
+          setError(null)
+        } else {
+          throw new Error(data.message || 'Failed to fetch tokens')
+        }
+      } catch (error: any) {
+        console.error('Error fetching tokens:', error)
+        setError(error.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTokens() // Load only when watchlist is accessed
+  }, [])
+
+  // Split tokens into three sections
+  const recommendedTokens = tokens.slice(0, 3)
+  const newTokens = tokens.slice(3, 6)
+  const expandedWatchlist = tokens.slice(6, 12)
+
+  const renderTokenTable = (tokens: FrontendToken[], title: string) => (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b bg-gray-50 dark:bg-gray-800">
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">Name</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">Symbol</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">Market Cap</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">Created</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">Bonded</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">5m%</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">1h%</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">6h%</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">24h%</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">5m</th>
+                <th className="text-left p-3 text-sm font-medium text-gray-600 dark:text-gray-300">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tokens.map((token) => (
+                <tr key={token.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <td className="p-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {token.symbol.charAt(0)}
+                      </div>
+                      <span className="font-medium">{token.name}</span>
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">{token.symbol}</td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">{token.marketCap || 'N/A'}</td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">
+                    {new Date(token.created).toLocaleDateString()}
+                  </td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">
+                    {new Date(token.created).toLocaleDateString()}
+                  </td>
+                  <td className={`p-3 ${getPriceChangeColor(token.fiveMin)}`}>
+                    {formatPriceChange(token.fiveMin)}
+                  </td>
+                  <td className={`p-3 ${getPriceChangeColor(token.oneHour)}`}>
+                    {formatPriceChange(token.oneHour)}
+                  </td>
+                  <td className={`p-3 ${getPriceChangeColor(token.sixHour)}`}>
+                    {formatPriceChange(token.sixHour)}
+                  </td>
+                  <td className={`p-3 ${getPriceChangeColor(token.twentyFourHour)}`}>
+                    {formatPriceChange(token.twentyFourHour)}
+                  </td>
+                  <td className={`p-3 ${getPriceChangeColor(token.fiveMin)}`}>
+                    {formatPriceChange(token.fiveMin)}
+                  </td>
+                  <td className="p-3">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/token/${token.id}`}>
+                        <Eye className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   )
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Watchlist</h1>
+        </div>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-2 text-gray-500">Loading tokens...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Watchlist</h1>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-red-500 mb-4">Error loading tokens: {error}</p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Watchlist</h1>
-          <p className="text-gray-500 dark:text-gray-400">Track your favorite tokens in one place</p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
-          <Plus className="mr-2 h-4 w-4" /> Add Token
-        </Button>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle>My Watchlist</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  placeholder="Search tokens..."
-                  className="pl-10 w-full sm:w-[200px]"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <SlidersHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Sort by Name</DropdownMenuItem>
-                  <DropdownMenuItem>Sort by Price</DropdownMenuItem>
-                  <DropdownMenuItem>Sort by Change</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pb-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="gainers">Gainers</TabsTrigger>
-              <TabsTrigger value="losers">Losers</TabsTrigger>
-            </TabsList>
-          </Tabs>
+      {/* Recommended Tokens */}
+      {renderTokenTable(recommendedTokens, "Recommend Tokens")}
 
-          {filteredTokens.length === 0 ? (
-            <div className="text-center py-12">
-              <Star className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No tokens found</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                {searchQuery ? "No tokens match your search" : "Your watchlist is empty"}
-              </p>
-              {!searchQuery && (
-                <Button onClick={() => setIsAddModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
-                  <Plus className="mr-2 h-4 w-4" /> Add Token
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTokens
-                .filter((token) => {
-                  if (activeTab === "gainers") return token.change > 0
-                  if (activeTab === "losers") return token.change < 0
-                  return true
-                })
-                .map((token) => (
-                  <div key={token.id} className="relative group">
-                    <TokenCard token={token} />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        // Remove from watchlist functionality would go here
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                    </Button>
-                  </div>
-                ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* New Tokens */}
+      {renderTokenTable(newTokens, "New Tokens")}
 
-      <AddTokenModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+      {/* Expanded Watchlist */}
+      {renderTokenTable(expandedWatchlist, "Expended Watchlist")}
     </div>
   )
 }

@@ -12,6 +12,7 @@ export interface IUser extends Document {
   name: string
   email: string
   password: string
+  profileImage?: string
   subscriptionStatus: 'free' | 'premium'
   subscriptionExpiry?: Date
   walletAddress?: string
@@ -45,6 +46,10 @@ const UserSchema: Schema<IUser> = new Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters long']
+    },
+    profileImage: {
+      type: String,
+      default: null
     },
     subscriptionStatus: {
       type: String,

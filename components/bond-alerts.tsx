@@ -1,61 +1,52 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Bell, CheckCircle2, Clock, RefreshCw } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { Alert, AlertsApiResponse } from "@/lib/types"
 import { formatDistanceToNow } from "date-fns"
-import type { BondEvent } from "@/lib/types"
-
-// Mock data for bond events
-const bondEvents: BondEvent[] = [
-  {
-    id: "1",
-    tokenId: "1",
-    tokenName: "NewCoin",
-    tokenSymbol: "NEW",
-    bondedPercentage: 100,
-    timestamp: Date.now() - 1000 * 60 * 15, // 15 minutes ago
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "2",
-    tokenId: "2",
-    tokenName: "FreshToken",
-    tokenSymbol: "FRSH",
-    bondedPercentage: 95,
-    timestamp: Date.now() - 1000 * 60 * 30, // 30 minutes ago
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "3",
-    tokenId: "3",
-    tokenName: "BondCoin",
-    tokenSymbol: "BOND",
-    bondedPercentage: 90,
-    timestamp: Date.now() - 1000 * 60 * 45, // 45 minutes ago
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "4",
-    tokenId: "4",
-    tokenName: "AlmostCoin",
-    tokenSymbol: "ALMT",
-    bondedPercentage: 85,
-    timestamp: Date.now() - 1000 * 60 * 60, // 1 hour ago
-    image: "/placeholder.svg?height=40&width=40",
-  },
-]
+import { Bell, CheckCircle2, Clock, RefreshCw } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function BondAlerts() {
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [bondAlerts, setBondAlerts] = useState<Alert[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchBondAlerts = async () => {
+    try {
+      setIsRefreshing(true)
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/alerts?type=bond', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data: AlertsApiResponse = await response.json()
+      if (data.success && data.data) {
+        setBondAlerts(data.data)
+      }
+    } catch (error: any) {
+      console.error('Error fetching bond alerts:', error)
+    } finally {
+      setIsRefreshing(false)
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchBondAlerts()
+  }, [])
 
   const handleRefresh = () => {
-    setIsRefreshing(true)
-    setTimeout(() => setIsRefreshing(false), 1000)
+    fetchBondAlerts()
   }
 
   const getBondStatusBadge = (percentage: number) => {
@@ -93,39 +84,56 @@ export default function BondAlerts() {
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y divide-border">
-          {bondEvents.map((event) => (
-            <div key={event.id} className="p-4 hover:bg-muted/50 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center">
-                  <Image
-                    src={event.image || "/placeholder.svg"}
-                    alt={event.tokenName}
-                    width={40}
-                    height={40}
-                    className="rounded-full mr-3"
-                  />
-                  <div>
-                    <Link href={`/token/${event.tokenId}`} className="font-medium hover:underline">
-                      {event.tokenName}
-                    </Link>
-                    <div className="text-sm text-muted-foreground">${event.tokenSymbol}</div>
-                    <div className="flex items-center mt-1">
-                      <div className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(event.timestamp, { addSuffix: true })}
+          {loading ? (
+            <div className="p-4">
+              <div className="animate-pulse space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/6"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : bondAlerts.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No bond alerts found</p>
+              <p className="text-sm mt-1">Create alerts to get notified when tokens reach bonding milestones</p>
+            </div>
+          ) : (
+            bondAlerts.map((alert) => (
+              <div key={alert.id} className="p-4 hover:bg-muted/50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gray-600 rounded-full mr-3 flex-shrink-0"></div>
+                    <div>
+                      <Link href={`/token/${alert.tokenId}`} className="font-medium hover:underline">
+                        {alert.tokenName}
+                      </Link>
+                      <div className="text-sm text-muted-foreground">{alert.tokenSymbol}</div>
+                      <div className="flex items-center mt-1">
+                        <div className="text-xs text-muted-foreground">
+                          Alert: {alert.condition} {alert.threshold}%
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  {getBondStatusBadge(event.bondedPercentage)}
-                  <Button variant="outline" size="sm" className="h-6 text-xs">
-                    <Bell className="h-3 w-3 mr-1" />
-                    Set Alert
-                  </Button>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge className={`${alert.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {alert.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground">
+                      Created {formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true })}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
         <div className="p-3 text-center">
           <Button variant="ghost" size="sm" asChild>
