@@ -1,6 +1,5 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
@@ -117,7 +116,7 @@ export default function OverviewPage() {
 
     setIsCreatingAlert(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('auth_token')
       if (!token) {
         toast({
           title: "Error",
@@ -145,26 +144,52 @@ export default function OverviewPage() {
       })
 
       const data = await response.json()
+      console.log('Alert creation response:', data) // Debug log
 
       if (data.success) {
         toast({
-          title: "Success",
-          description: `Price alert created for ${selectedToken.symbol} at $${priceThreshold}`,
+          title: "✅ Alert Created Successfully!",
+          description: `Price alert set for ${selectedToken.symbol} at $${priceThreshold}. Check your alerts page to view it.`,
+          duration: 5000,
         })
         setPriceThreshold('')
+
+        // Show a follow-up toast with link to alerts page
+        setTimeout(() => {
+          toast({
+            title: "💡 View Your Alerts",
+            description: "Your new alert is ready! Click to view all alerts.",
+            action: (
+              <a
+                href="/alerts"
+                className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                onClick={() => {
+                  // Force page refresh when navigating to alerts
+                  window.location.href = '/alerts'
+                }}
+              >
+                View Alerts
+              </a>
+            ),
+            duration: 10000,
+          })
+        }, 3000)
       } else {
+        console.error('Alert creation failed:', data) // Debug log
         toast({
-          title: "Error",
-          description: data.error || 'Failed to create alert',
-          variant: "destructive"
+          title: "❌ Failed to Create Alert",
+          description: data.error || data.message || 'Failed to create alert. Please try again.',
+          variant: "destructive",
+          duration: 5000,
         })
       }
     } catch (error) {
       console.error('Error creating alert:', error)
       toast({
-        title: "Error",
-        description: "Failed to create alert. Please try again.",
-        variant: "destructive"
+        title: "❌ Network Error",
+        description: "Failed to create alert due to network error. Please check your connection and try again.",
+        variant: "destructive",
+        duration: 5000,
       })
     } finally {
       setIsCreatingAlert(false)
@@ -449,65 +474,69 @@ export default function OverviewPage() {
         </Card>
       </div>
 
-      {/* Alert Configuration Section */}
-      {selectedToken && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-blue-500" />
-                <span className="font-medium">
-                  Price Alert for {selectedToken.symbol}
-                </span>
-                <Badge variant="secondary">
-                  {priceThreshold ? `$${priceThreshold}` : 'Set Threshold'}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Alert Status</span>
-                <div className={`w-10 h-6 rounded-full relative ${priceThreshold ? 'bg-green-500' : 'bg-gray-300'}`}>
-                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${priceThreshold ? 'right-1' : 'left-1'}`}></div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Price Alert Configuration */}
       {selectedToken && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Price Alert Configuration</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Bell className="h-5 w-5 text-blue-500" />
+              Price Alert for {selectedToken.symbol}
+            </CardTitle>
             <p className="text-sm text-gray-600">
-              Set a price threshold for {selectedToken.symbol} to receive notifications
+              Get notified when {selectedToken.name} reaches your target price
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <span className="font-medium">Alert Price ($):</span>
-              <input
-                type="number"
-                value={priceThreshold}
-                onChange={(e) => setPriceThreshold(e.target.value)}
-                placeholder="0.00"
-                className="border rounded px-3 py-2 w-32"
-                step="0.000001"
-                min="0"
-              />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm">Target Price ($):</span>
+                <input
+                  type="number"
+                  value={priceThreshold}
+                  onChange={(e) => setPriceThreshold(e.target.value)}
+                  placeholder="0.000001"
+                  className="px-3 py-2 border rounded-md w-32 text-sm"
+                  step="0.000001"
+                  min="0"
+                />
+              </div>
               <Button
                 onClick={createPriceAlert}
                 disabled={!priceThreshold || isCreatingAlert}
                 size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
               >
-                {isCreatingAlert ? 'Creating...' : 'Set Alert'}
+                {isCreatingAlert ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Bell className="h-4 w-4 mr-2" />
+                    Create Alert
+                  </>
+                )}
               </Button>
             </div>
             {selectedToken.marketCap && (
-              <p className="text-sm text-gray-500">
-                Current Market Cap: {selectedToken.marketCap}
-              </p>
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Market Cap:</span> {selectedToken.marketCap}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Symbol:</span> {selectedToken.symbol}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Created:</span> {selectedToken.created}
+                </p>
+              </div>
             )}
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              💡 Alerts will be displayed in your <a href="/alerts" className="text-blue-500 hover:underline">Alerts section</a> once created
+            </div>
           </CardContent>
         </Card>
       )}

@@ -48,7 +48,7 @@ const subscriptionPlans = [
 ]
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, checkAuth } = useAuth()
   const { wallet } = useWallet()
   const { toast } = useToast()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -60,6 +60,13 @@ export default function ProfilePage() {
   const [loadingTrades, setLoadingTrades] = useState(true)
   const [profileImage, setProfileImage] = useState<string>("")
   const [uploadingImage, setUploadingImage] = useState(false)
+
+  // Load profile image from user data when component mounts
+  useEffect(() => {
+    if (user?.profileImage) {
+      setProfileImage(user.profileImage)
+    }
+  }, [user])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Notification settings
@@ -122,6 +129,29 @@ export default function ProfilePage() {
 
       const data = await response.json()
       setProfileImage(data.url)
+
+      // Update profile in database
+      try {
+        const updateResponse = await fetch('/api/auth/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            name: user?.name || '',
+            email: user?.email || '',
+            profileImage: data.url
+          })
+        })
+
+        if (updateResponse.ok) {
+          // Refresh user data in auth context
+          await checkAuth()
+        }
+      } catch (updateError) {
+        console.error('Error updating profile:', updateError)
+      }
 
       toast({
         title: "Success!",

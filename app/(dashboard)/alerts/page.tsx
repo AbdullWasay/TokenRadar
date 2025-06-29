@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Alert, AlertsApiResponse, FrontendToken, TokensApiResponse } from "@/lib/types"
 import { formatDistanceToNow } from "date-fns"
-import { Bell, BellOff, Clock, Edit, MoreHorizontal, Plus, Trash2 } from "lucide-react"
+import { Bell, BellOff, Clock, Edit, MoreHorizontal, Plus, RefreshCw, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 // Real data will be fetched from MongoDB via API
@@ -194,9 +194,22 @@ export default function AlertsPage() {
           <h1 className="text-2xl font-bold">Alerts</h1>
           <p className="text-gray-500 dark:text-gray-400">Set up notifications for price movements and bond events</p>
         </div>
-        <Button onClick={() => setIsCreateAlertOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
-          <Plus className="mr-2 h-4 w-4" /> Create Alert
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => {
+              setLoading(true)
+              fetchAlerts()
+            }}
+            variant="outline"
+            disabled={loading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={() => setIsCreateAlertOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="mr-2 h-4 w-4" /> Create Alert
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
