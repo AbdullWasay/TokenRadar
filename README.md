@@ -12,6 +12,13 @@
 
 [https://www.veed.io/view/88e080d9-f367-4fd0-8c85-22a1220a383e?panel=share](https://www.veed.io/view/88e080d9-f367-4fd0-8c85-22a1220a383e?panel=share)
 
+
+<h2>Dashboard</h2>
+
+<p align="center">
+  <img src="https://i.postimg.cc/KzJpGKCN/Token-Radar-Dashboard.png" alt="TokenRadar" />
+</p>
+
 <h2>🛠️ Installation Steps:</h2>
 
 <p>1. Clone the Repository</p>
