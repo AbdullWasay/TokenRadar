@@ -196,7 +196,7 @@ export default function Footer() {
 
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
           <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
-            © {new Date().getFullYear()} Rader. All rights reserved.
+            © {new Date().getFullYear()} Token Radar. All rights reserved.
           </p>
         </div>
       </div>

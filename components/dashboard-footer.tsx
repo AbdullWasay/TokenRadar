@@ -6,7 +6,7 @@ export default function DashboardFooter() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            © {new Date().getFullYear()} Rader. All rights reserved.
+            © {new Date().getFullYear()} Token Radar. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link

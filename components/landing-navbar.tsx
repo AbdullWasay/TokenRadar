@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Moon, Sun, Menu, X } from "lucide-react"
+import { Menu, Moon, Sun, X } from "lucide-react"
 import { useTheme } from "next-themes"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme()
@@ -44,7 +44,7 @@ export default function Navbar() {
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">Rader</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Token Radar</span>
             </Link>
           </div>
 
