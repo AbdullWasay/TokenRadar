@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
-import connectDB from '@/lib/mongodb'
 import Alert from '@/lib/models/Alert'
-import type { CreateAlertRequest, AlertsApiResponse } from '@/lib/types'
+import dbConnect from '@/lib/mongodb'
+import type { AlertsApiResponse, CreateAlertRequest } from '@/lib/types'
+import jwt from 'jsonwebtoken'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Helper function to verify JWT token
 async function verifyToken(request: NextRequest) {
@@ -23,7 +23,7 @@ async function verifyToken(request: NextRequest) {
 // GET /api/alerts - Get user's alerts
 export async function GET(request: NextRequest) {
   try {
-    await connectDB()
+    await dbConnect()
 
     const userId = await verifyToken(request)
     if (!userId) {
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 // POST /api/alerts - Create new alert
 export async function POST(request: NextRequest) {
   try {
-    await connectDB()
+    await dbConnect()
 
     const userId = await verifyToken(request)
     if (!userId) {
