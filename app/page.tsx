@@ -85,27 +85,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Partners/Integrations Section */}
-      <section className="py-16 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-medium text-gray-600 dark:text-gray-400">Trusted by companies worldwide</h2>
-          </div>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all">
-                <Image
-                  src={`/placeholder.svg?height=40&width=120&text=Partner ${i}`}
-                  alt={`Partner ${i}`}
-                  width={120}
-                  height={40}
-                  className="h-8 w-auto object-contain"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* How It Works Section */}
       <section className="py-20 bg-white dark:bg-gray-900">

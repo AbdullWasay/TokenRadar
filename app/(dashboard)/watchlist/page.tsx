@@ -42,7 +42,9 @@ function renderMiniChart(change: string) {
 
 export default function WatchlistPage() {
   const [tokens, setTokens] = useState<FrontendToken[]>([])
+  const [wishlistItems, setWishlistItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [wishlistLoading, setWishlistLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Fetch real token data
@@ -80,10 +82,156 @@ export default function WatchlistPage() {
     fetchTokens() // Load only when watchlist is accessed
   }, [])
 
-  // Split tokens into three sections
-  const recommendedTokens = tokens.slice(0, 3)
-  const newTokens = tokens.slice(3, 6)
-  const expandedWatchlist = tokens.slice(6, 12)
+  // Fetch wishlist items
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      try {
+        setWishlistLoading(true)
+        const authToken = localStorage.getItem('auth_token')
+
+        if (!authToken) {
+          setWishlistItems([])
+          setWishlistLoading(false)
+          return
+        }
+
+        const response = await fetch('/api/wishlist', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Cache-Control': 'no-cache',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (data.success && data.data) {
+          setWishlistItems(data.data)
+        } else {
+          setWishlistItems([])
+        }
+      } catch (error: any) {
+        console.error('Error fetching wishlist:', error)
+        setWishlistItems([])
+      } finally {
+        setWishlistLoading(false)
+      }
+    }
+
+    fetchWishlist()
+  }, [])
+
+  // Remove item from wishlist
+  const removeFromWishlist = async (itemId: string) => {
+    try {
+      const authToken = localStorage.getItem('auth_token')
+      if (!authToken) return
+
+      const response = await fetch(`/api/wishlist/${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      })
+
+      if (response.ok) {
+        setWishlistItems(prev => prev.filter(item => item.id !== itemId))
+      }
+    } catch (error) {
+      console.error('Error removing from wishlist:', error)
+    }
+  }
+
+  // Render wishlist section
+  const renderWishlist = () => {
+    if (wishlistLoading) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Wishlist</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Loading wishlist...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
+
+    if (wishlistItems.length === 0) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Wishlist</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-gray-500">Your wishlist is empty.</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Add tokens from the overview page to track them here.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Wishlist</CardTitle>
+          <p className="text-sm text-gray-600">
+            Tokens you've added to your wishlist
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {wishlistItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="font-medium">{item.tokenSymbol}</div>
+                    <div className="text-sm text-gray-500">{item.tokenName}</div>
+                    <div className="text-xs text-gray-400">
+                      Added: {new Date(item.addedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/token/${item.tokenId}`}>
+                      <Eye className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFromWishlist(item.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    ×
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Split tokens into two sections
+  const recommendedTokens = tokens.slice(0, 5)
+  const newTokens = tokens.slice(5, 10)
 
   const renderTokenTable = (tokens: FrontendToken[], title: string) => (
     <Card className="mb-6">
@@ -197,14 +345,14 @@ export default function WatchlistPage() {
         </div>
       </div>
 
+      {/* Wishlist */}
+      {renderWishlist()}
+
       {/* Recommended Tokens */}
       {renderTokenTable(recommendedTokens, "Recommend Tokens")}
 
       {/* New Tokens */}
       {renderTokenTable(newTokens, "New Tokens")}
-
-      {/* Expanded Watchlist */}
-      {renderTokenTable(expandedWatchlist, "Expended Watchlist")}
     </div>
   )
 }

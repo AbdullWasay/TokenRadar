@@ -24,6 +24,10 @@ export default function OverviewPage() {
   const [volumeLoading, setVolumeLoading] = useState(false)
   const [priceThreshold, setPriceThreshold] = useState<string>('')
   const [isCreatingAlert, setIsCreatingAlert] = useState(false)
+  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false)
+  const [currentPage, setCurrentPage] = useState(0)
+  const tokensPerPage = 6 // 2 rows × 3 columns
+  const [wishlistTokenIds, setWishlistTokenIds] = useState<string[]>([])
 
   const fetchTokens = async (showLoading = true) => {
     try {
@@ -196,6 +200,128 @@ export default function OverviewPage() {
     }
   }
 
+  // Check wishlist status for current tokens
+  const checkWishlistStatus = async (tokenIds: string[]) => {
+    try {
+      const authToken = localStorage.getItem('auth_token')
+      if (!authToken) {
+        setWishlistTokenIds([])
+        return
+      }
+
+      const response = await fetch('/api/wishlist', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ tokenIds })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setWishlistTokenIds(data.data || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error checking wishlist status:', error)
+      setWishlistTokenIds([])
+    }
+  }
+
+  // Check wishlist status when tokens change
+  useEffect(() => {
+    if (tokens.length > 0) {
+      const tokenIds = tokens.map(token => token.id)
+      checkWishlistStatus(tokenIds)
+    }
+  }, [tokens])
+
+  // Add token to wishlist
+  const addToWishlist = async (token: FrontendToken) => {
+    if (!token) return
+
+    setIsAddingToWishlist(true)
+    try {
+      const authToken = localStorage.getItem('auth_token')
+      if (!authToken) {
+        toast({
+          title: "❌ Login Required",
+          description: "Please log in to add tokens to your wishlist.",
+          variant: "destructive",
+          duration: 5000,
+        })
+        return
+      }
+
+      const response = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          tokenId: token.id,
+          tokenName: token.name,
+          tokenSymbol: token.symbol,
+          tokenAddress: token.address || null
+        })
+      })
+
+      const data = await response.json()
+      console.log('Wishlist API response:', data) // Debug log
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
+      if (response.ok && data.success) {
+        toast({
+          title: "✅ Added to Wishlist!",
+          description: `${token.symbol} has been added to your wishlist.`,
+          action: (
+            <a
+              href="/watchlist"
+              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
+              onClick={() => {
+                window.location.href = '/watchlist'
+              }}
+            >
+              View Wishlist
+            </a>
+          ),
+          duration: 8000,
+        })
+
+        // Update wishlist status
+        setWishlistTokenIds(prev => [...prev, token.id])
+      } else {
+        console.error('Wishlist addition failed:', data)
+        console.error('Full response:', { status: response.status, data })
+        toast({
+          title: "❌ Failed to Add",
+          description: data.error || `Failed to add token to wishlist. Status: ${response.status}`,
+          variant: "destructive",
+          duration: 5000,
+        })
+      }
+    } catch (error) {
+      console.error('Error adding to wishlist:', error)
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      })
+      toast({
+        title: "❌ Network Error",
+        description: `Failed to add to wishlist: ${error.message}`,
+        variant: "destructive",
+        duration: 5000,
+      })
+    } finally {
+      setIsAddingToWishlist(false)
+    }
+  }
+
   const handleTokenSelection = async (token: FrontendToken) => {
     setSelectedToken(token)
     await fetchVolumeData(token)
@@ -253,6 +379,121 @@ export default function OverviewPage() {
           Refresh
         </Button>
       </div>
+
+      {/* Token Selection */}
+      {tokens.length > 1 && (() => {
+        const totalPages = Math.ceil(tokens.length / tokensPerPage)
+        const startIndex = currentPage * tokensPerPage
+        const endIndex = startIndex + tokensPerPage
+        const currentTokens = tokens.slice(startIndex, endIndex)
+
+        return (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Select Token for Analysis</CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Choose a token to view detailed information and set alerts
+                  </p>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {tokens.length} tokens available
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                {currentTokens.map((token) => (
+                  <div
+                    key={token.id}
+                    onClick={() => setSelectedToken(token)}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      selectedToken?.id === token.id
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-black dark:text-white'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-sm">{token.symbol}</h3>
+                        <p className="text-xs text-gray-500 truncate">{token.name}</p>
+                        <p className="text-xs text-gray-400 mt-1">{token.created}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {/* Wishlist status indicator */}
+                        {wishlistTokenIds.includes(token.id) && (
+                          <div className="flex items-center gap-1 text-red-500">
+                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                            <span className="text-xs">In Wishlist</span>
+                          </div>
+                        )}
+                        {selectedToken?.id === token.id && !wishlistTokenIds.includes(token.id) && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                addToWishlist(token)
+                              }}
+                              disabled={isAddingToWishlist}
+                              className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
+                            >
+                              {isAddingToWishlist ? 'Adding...' : 'Add to Wishlist'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    Page {currentPage + 1} of {totalPages}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                      disabled={currentPage === 0}
+                      className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentPage(i)}
+                          className={`w-8 h-8 text-sm rounded ${
+                            currentPage === i
+                              ? 'bg-blue-500 text-white'
+                              : 'border hover:bg-gray-50'
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                      disabled={currentPage === totalPages - 1}
+                      className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -541,53 +782,7 @@ export default function OverviewPage() {
         </Card>
       )}
 
-      {/* Token Selection */}
-      {tokens.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Select Token for Analysis</CardTitle>
-            <p className="text-sm text-gray-600">
-              Choose a token to view detailed information and set alerts
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tokens.slice(0, 6).map((token) => (
-                <div
-                  key={token.id}
-                  onClick={() => handleTokenSelection(token)}
-                  className={`p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                    selectedToken?.id === token.id ? 'border-blue-500 bg-blue-50 text-gray-900' : 'border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {token.image && (
-                      <img
-                        src={token.image}
-                        alt={token.symbol}
-                        className="w-8 h-8 rounded-full"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                        }}
-                      />
-                    )}
-                    <div>
-                      <div className="font-medium">{token.symbol}</div>
-                      <div className="text-sm text-gray-500">{token.name}</div>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-600">MC: {token.marketCap}</div>
-                    <div className={`${getPriceChangeColor(token.twentyFourHour)}`}>
-                      24h: {formatPriceChange(token.twentyFourHour)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
     </div>
   )
 }
