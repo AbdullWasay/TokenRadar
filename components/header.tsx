@@ -14,16 +14,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
+import { useSidebarContext } from "@/lib/sidebar-context"
 import { Bell, Menu } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
-interface HeaderProps {
-  toggleSidebar: () => void
-}
-
-export default function Header({ toggleSidebar }: HeaderProps) {
+export default function Header() {
+  const { toggleSidebar } = useSidebarContext()
   const { user, logout } = useAuth()
   const pathname = usePathname()
   const [alertCount, setAlertCount] = useState(0)
@@ -57,14 +55,16 @@ export default function Header({ toggleSidebar }: HeaderProps) {
         <Menu className="h-5 w-5" />
         <span className="sr-only">Toggle Menu</span>
       </Button>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold">Token Radar</span>
+          <span className="text-lg md:text-xl font-bold truncate">Token Radar</span>
         </Link>
       </div>
       <div className="flex-1"></div>
-      <div className="flex items-center gap-4">
-        <SimpleWalletConnect />
+      <div className="flex items-center gap-2 md:gap-4">
+        <div className="hidden sm:block">
+          <SimpleWalletConnect />
+        </div>
         <ModeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

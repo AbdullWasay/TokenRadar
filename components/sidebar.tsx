@@ -2,24 +2,21 @@
 
 
 import { PremiumIcon } from "@/components/premium-guard"
-import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/lib/auth-context"
+import { useSidebarContext } from "@/lib/sidebar-context"
 import { cn } from "@/lib/utils"
 import {
-    Bell,
-    ChevronLeft,
-    ChevronRight,
-    Compass,
-    LayoutDashboard,
-    LineChart,
-    Star,
-    User,
-    Zap
+  Bell,
+  Compass,
+  LayoutDashboard,
+  LineChart,
+  Star,
+  User,
+  Zap
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
 
 import PremiumPopup, { usePremiumPopup } from "@/components/premium-popup"
 
@@ -27,36 +24,9 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { user } = useAuth()
   const { isOpen: isPremiumPopupOpen, feature, showPremiumPopup, closePremiumPopup } = usePremiumPopup()
-  const [collapsed, setCollapsed] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen, collapsed, isMobile, toggleSidebar, setIsOpen, closeSidebar } = useSidebarContext()
 
   const isPremium = user?.subscriptionStatus === 'premium'
-
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
-      if (window.innerWidth < 1024) {
-        setCollapsed(true)
-      }
-    }
-
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-
-    return () => {
-      window.removeEventListener("resize", checkMobile)
-    }
-  }, [])
-
-  const toggleSidebar = () => {
-    if (isMobile) {
-      setIsOpen(!isOpen)
-    } else {
-      setCollapsed(!collapsed)
-    }
-  }
 
   const mainNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, premium: true },
@@ -111,7 +81,7 @@ export default function Sidebar() {
                 {linkContent}
               </div>
             ) : (
-              <Link href={item.href}>
+              <Link href={item.href} onClick={closeSidebar}>
                 {linkContent}
               </Link>
             )}
@@ -145,7 +115,7 @@ export default function Sidebar() {
       >
         <div className="flex h-16 items-center justify-between px-4 py-4">
           {!collapsed && (
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href="/dashboard" className="flex items-center gap-2" onClick={closeSidebar}>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600">
                 <LineChart className="h-4 w-4 text-white" />
               </div>
@@ -157,11 +127,9 @@ export default function Sidebar() {
               <LineChart className="h-4 w-4 text-white" />
             </div>
           )}
-          {!isMobile && (
-            <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={toggleSidebar}>
-              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-            </Button>
-          )}
+
+         
+
         </div>
 
         <div className="flex-1 overflow-auto py-4">
@@ -182,17 +150,7 @@ export default function Sidebar() {
 
       </aside>
 
-      {/* Mobile toggle button */}
-      {isMobile && (
-        <Button
-          variant="outline"
-          size="icon"
-          className="fixed bottom-4 right-4 z-50 h-10 w-10 rounded-full border border-gray-200 bg-white shadow-lg lg:hidden"
-          onClick={toggleSidebar}
-        >
-          {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-        </Button>
-      )}
+
 
       {/* Premium Popup */}
       <PremiumPopup

@@ -107,7 +107,7 @@ export default function LoginPage() {
       <Navbar />
       <div className="flex-1 flex pt-4 pb-8">
       {/* Left side with gradient background and logo */}
-      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-indigo-900 via-purple-800 to-purple-600 relative p-8 items-center justify-center">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-900 via-purple-800 to-purple-600 relative p-8 items-center justify-center">
         <div className="max-w-md mx-auto text-center">
           <div className="bg-gradient-to-r from-indigo-900 to-purple-700 rounded-2xl p-8 mb-12 shadow-lg">
             <h1 className="text-5xl font-bold text-white mb-4">Token Radar</h1>
@@ -161,7 +161,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right side with login form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-white">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 md:p-8 bg-white">
         <div className="w-full max-w-md mt-4">
           <h2 className="text-3xl font-bold text-center mb-8">Log in</h2>
 

@@ -13,7 +13,8 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Token Tracker",
   description: "Track and monitor tokens in real-time",
-    generator: 'token-tracker-dev'
+  generator: 'token-tracker-dev',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1'
 }
 
 export default function RootLayout({

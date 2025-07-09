@@ -91,18 +91,18 @@ export default function Dashboard() {
                 <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-4">
-              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700">
-                <Plus className="mr-2 h-4 w-4" /> Add New Token
+            <CardContent className="grid gap-3 sm:gap-4">
+              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
+                <Plus className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Add New Token</span>
               </Button>
-              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700">
-                <Bell className="mr-2 h-4 w-4" /> Create Alert
+              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
+                <Bell className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Create Alert</span>
               </Button>
-              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700">
-                <BarChart2 className="mr-2 h-4 w-4" /> View Analytics
+              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
+                <BarChart2 className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">View Analytics</span>
               </Button>
-              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700">
-                <Zap className="mr-2 h-4 w-4" /> Upgrade Plan
+              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
+                <Zap className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Upgrade Plan</span>
               </Button>
             </CardContent>
           </Card>
