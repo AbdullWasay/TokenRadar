@@ -80,6 +80,34 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Mobile-first responsive utilities */
+  .mobile-container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .mobile-text {
+    @apply text-sm sm:text-base;
+  }
+
+  .mobile-heading {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  /* Prevent horizontal scrolling */
+  .no-scroll-x {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Mobile-friendly button sizes */
+  .mobile-btn {
+    @apply px-4 py-2 text-sm sm:px-6 sm:py-3 sm:text-base;
+  }
 }
 
 /* Fix white hover color issues */
@@ -97,5 +125,32 @@
   /* Override any white background hovers that cause visibility issues */
   [class*="hover:bg-white"]:hover {
     @apply bg-gray-100 dark:bg-gray-800 !important;
+  }
+
+  /* Mobile-specific improvements */
+  @media (max-width: 768px) {
+    /* Ensure proper touch targets */
+    button, a, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Better spacing for mobile */
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    /* Prevent text from being too small on mobile */
+    body {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    /* Ensure dropdowns and modals work well on mobile */
+    .dropdown-content, .modal-content {
+      max-width: calc(100vw - 2rem);
+      max-height: calc(100vh - 4rem);
+    }
   }
 }

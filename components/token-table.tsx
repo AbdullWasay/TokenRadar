@@ -22,8 +22,75 @@ export default function TokenTable({ tokens }: TokenTableProps) {
     setAlertModalOpen(true)
   }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    <>
+      {/* Mobile Card Layout */}
+      <div className="md:hidden space-y-4">
+        {tokens.map((token) => (
+          <div key={token.id} className="bg-white dark:bg-gray-800 rounded-lg border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  {token.symbol?.charAt(0) || 'T'}
+                </div>
+                <div>
+                  <div className="font-medium text-sm">{token.name}</div>
+                  <div className="text-xs text-gray-500">{token.symbol}</div>
+                </div>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(token.contractAddress || token.id)}>
+                    Copy Contract Address
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <a href={`https://dexscreener.com/solana/${token.contractAddress || token.id}`} target="_blank" rel="noopener noreferrer">
+                      View on DexScreener
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSetAlert(token)}>
+                    <Bell className="h-4 w-4 mr-2" />
+                    Set Alert
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-gray-500">Market Cap:</span>
+                <div className="font-medium">{token.marketCap || 'N/A'}</div>
+              </div>
+              <div>
+                <span className="text-gray-500">Created:</span>
+                <div className="font-medium">{new Date(token.createdAt).toLocaleDateString()}</div>
+              </div>
+              <div>
+                <span className="text-gray-500">Bonded:</span>
+                <div className="font-medium">
+                  <span className={`px-2 py-1 rounded-full text-xs ${token.bonded ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {token.bonded ? 'Yes' : 'No'}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-500">24h Change:</span>
+                <div className={`font-medium ${parseFloat(token.twentyFourHour || '0') >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {token.twentyFourHour || 'N/A'}%
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table Layout */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full">
         <thead>
           <tr className="bg-gray-50 dark:bg-gray-800 text-left">
             <th className="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Name</th>
@@ -189,6 +256,7 @@ export default function TokenTable({ tokens }: TokenTableProps) {
           })}
         </tbody>
       </table>
+      </div>
 
       {selectedToken && (
         <AlertModal
@@ -203,6 +271,6 @@ export default function TokenTable({ tokens }: TokenTableProps) {
           currentBondingPercentage={selectedToken.bondedPercentage}
         />
       )}
-    </div>
+    </>
   )
 }
