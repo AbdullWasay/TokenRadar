@@ -355,7 +355,7 @@ export default function OverviewPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-red-600 mb-4">Error: {error}</p>
-          <Button onClick={fetchTokens} variant="outline">
+          <Button onClick={() => fetchTokens()} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Try Again
           </Button>
@@ -403,7 +403,7 @@ export default function OverviewPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 {currentTokens.map((token) => (
                   <div
                     key={token.id}
@@ -495,8 +495,8 @@ export default function OverviewPage() {
         )
       })()}
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Main Grid - Single Column for Mobile */}
+      <div className="grid grid-cols-1 gap-6">
         {/* PUMP.FUN DATA */}
         <Card>
           <CardHeader>
@@ -534,8 +534,8 @@ export default function OverviewPage() {
                   </div>
                 </div>
 
-                {/* Token Details Grid */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                {/* Token Details Grid - Mobile Responsive */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Created</span>
@@ -660,8 +660,8 @@ export default function OverviewPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Timeframe Headers */}
-            <div className="grid grid-cols-4 gap-4 text-center text-sm font-medium text-gray-600 border-b pb-2">
+            {/* Timeframe Headers - Mobile Responsive */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-center text-sm font-medium text-gray-600 border-b pb-2">
               <span>5m</span>
               <span>1h</span>
               <span>6h</span>
@@ -673,7 +673,7 @@ export default function OverviewPage() {
               <div className="mb-2">
                 <span className="font-medium text-gray-700">PRICE CHANGE</span>
               </div>
-              <div className="grid grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-center">
                 <span className={`font-medium ${getPriceChangeColor(selectedToken?.fiveMin || "0")}`}>
                   {formatPriceChange(selectedToken?.fiveMin || "0")}
                 </span>
@@ -696,7 +696,7 @@ export default function OverviewPage() {
                   VOLUME {volumeLoading && <span className="text-xs text-blue-500 ml-2">updating...</span>}
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-center">
                 <span className="text-gray-600 font-medium">
                   {volumeLoading ? '...' : (volumeData?.m5 ? `$${volumeData.m5.toLocaleString()}` : 'N/A')}
                 </span>
