@@ -67,7 +67,7 @@ export default function TokenTable({ tokens }: TokenTableProps) {
               </div>
               <div>
                 <span className="text-gray-500">Created:</span>
-                <div className="font-medium">{new Date(token.createdAt).toLocaleDateString()}</div>
+                <div className="font-medium">{new Date(token.created).toLocaleDateString()}</div>
               </div>
               <div>
                 <span className="text-gray-500">Bonded:</span>

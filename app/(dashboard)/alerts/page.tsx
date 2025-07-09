@@ -356,8 +356,72 @@ export default function AlertsPage() {
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <>
+                {/* Mobile Card Layout */}
+                <div className="md:hidden space-y-4">
+                  {priceAlerts.map((alert) => (
+                    <div key={alert.id} className="bg-white dark:bg-gray-800 rounded-lg border p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                            <div className="w-full h-full bg-gray-600 rounded-full"></div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{alert.tokenSymbol}</div>
+                            <div className="text-xs text-gray-500">{alert.tokenName}</div>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditAlert(alert)}>
+                              <Edit className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500"
+                              onClick={() => handleDeleteAlert(alert.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-500">Condition:</span>
+                          <div className="font-medium capitalize">{alert.condition}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Price:</span>
+                          <div className="font-medium">${alert.threshold.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Created:</span>
+                          <div className="font-medium">{formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true })}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Status:</span>
+                          <div className="flex items-center">
+                            <Switch
+                              checked={alert.isActive}
+                              onCheckedChange={(checked) => handleToggleAlert(alert.id, checked)}
+                            />
+                            <span className="ml-2 text-sm">{alert.isActive ? "Active" : "Inactive"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table Layout */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-800">
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -437,7 +501,8 @@ export default function AlertsPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -461,8 +526,72 @@ export default function AlertsPage() {
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <>
+                {/* Mobile Card Layout */}
+                <div className="md:hidden space-y-4">
+                  {percentageAlerts.map((alert) => (
+                    <div key={alert.id} className="bg-white dark:bg-gray-800 rounded-lg border p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                            <div className="w-full h-full bg-gray-600 rounded-full"></div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{alert.tokenSymbol}</div>
+                            <div className="text-xs text-gray-500">{alert.tokenName}</div>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditAlert(alert)}>
+                              <Edit className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500"
+                              onClick={() => handleDeleteAlert(alert.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-500">Condition:</span>
+                          <div className="font-medium capitalize">{alert.condition}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Percentage:</span>
+                          <div className="font-medium">{(alert as any).percentage || alert.threshold}%</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Timeframe:</span>
+                          <div className="font-medium">{alert.timeframe}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Status:</span>
+                          <div className="flex items-center">
+                            <Switch
+                              checked={alert.isActive}
+                              onCheckedChange={(checked) => handleToggleAlert(alert.id, checked)}
+                            />
+                            <span className="ml-2 text-sm">{alert.isActive ? "Active" : "Inactive"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table Layout */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-800">
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -546,7 +675,8 @@ export default function AlertsPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
