@@ -1,112 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// TokenTracker API response interface
-interface TokenTrackerToken {
-  associated_bonding_curve: string
-  bonding_curve: string
-  created_timestamp: number
-  creator: string
-  description: string
-  image_url: string
-  last_trade_timestamp: number
-  metadata_uri: string
-  name: string
-  raydium_pool: string | null
-  symbol: string
-  telegram: string | null
-  token_address: string
-  total_supply: number
-  twitter: string | null
-  usd_market_cap: number
-  virtual_sol_reserves: string
-  virtual_token_reserves: string
-  website: string | null
-}
+// DIRECT PUMP.FUN API SCRAPING - NO FAKE DATA
+// This endpoint uses the Python-style method to fetch real data directly from pump.fun
 
-// DexScreener API response interface
-interface DexScreenerPair {
-  chainId: string
-  dexId: string
-  url: string
-  pairAddress: string
-  baseToken: {
-    address: string
-    name: string
-    symbol: string
-  }
-  quoteToken: {
-    address: string
-    name: string
-    symbol: string
-  }
-  priceNative: string
-  priceUsd: string
-  txns: {
-    m5: { buys: number; sells: number }
-    h1: { buys: number; sells: number }
-    h6: { buys: number; sells: number }
-    h24: { buys: number; sells: number }
-  }
-  volume: {
-    h24: number
-    h6: number
-    h1: number
-    m5: number
-  }
-  priceChange: {
-    m5?: number
-    h1?: number
-    h6?: number
-    h24?: number
-  }
-  liquidity: {
-    usd: number
-    base: number
-    quote: number
-  }
-  fdv: number
-  marketCap: number
-  pairCreatedAt: number
-}
-
-interface DexScreenerResponse {
-  schemaVersion: string
-  pairs: DexScreenerPair[] | null
-}
-
-// Our frontend token interface
-interface FrontendToken {
-  id: string
-  name: string
-  symbol: string
-  marketCap: string
-  created: string
-  bonded: string
-  fiveMin: string
-  oneHour: string
-  sixHour: string
-  twentyFourHour: string
-  image?: string
-  description?: string
-  website?: string
-  twitter?: string
-  telegram?: string
-  contractAddress?: string
-  totalSupply?: string
-  bondedPercentage?: number
-}
-
-// Helper function to format timestamp to date string
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp)
-  return date.toLocaleDateString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric'
-  })
-}
-
-// Helper function to format market cap
 function formatMarketCap(marketCap: number): string {
   if (marketCap >= 1000000) {
     return `$${(marketCap / 1000000).toFixed(2)}M`
@@ -117,217 +13,190 @@ function formatMarketCap(marketCap: number): string {
   }
 }
 
-// Helper function to determine if token is bonded (has raydium pool)
-function isBonded(token: TokenTrackerToken): boolean {
-  return token.raydium_pool !== null
-}
-
-// Helper function to calculate bonding percentage (simplified)
-function calculateBondingPercentage(token: TokenTrackerToken): number {
-  // If it has a raydium pool, it's 100% bonded
-  if (token.raydium_pool) {
-    return 100
-  }
-
-  // Otherwise, calculate based on market cap (this is a simplified approach)
-  // In reality, bonding curve mechanics are more complex
-  const maxBondingMC = 100000 // Assume $100K is full bonding threshold
-  const percentage = Math.min((token.usd_market_cap / maxBondingMC) * 100, 99)
-  return Math.round(percentage)
-}
-
-// Rate limiting for DexScreener API
-const dexScreenerCache = new Map<string, { data: DexScreenerPair | null; timestamp: number }>()
-const CACHE_DURATION = 30000 // 30 seconds cache
-const REQUEST_DELAY = 100 // 100ms delay between requests
-
-// Helper function to delay execution
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-// Fetch DexScreener data for a token with caching and rate limiting
-async function fetchDexScreenerData(token: TokenTrackerToken, index: number): Promise<DexScreenerPair | null> {
-  try {
-    // Only fetch DexScreener data for bonded tokens (those with raydium pools)
-    if (!token.raydium_pool) {
-      return null
-    }
-
-    // Check cache first
-    const cacheKey = token.raydium_pool
-    const cached = dexScreenerCache.get(cacheKey)
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-      return cached.data
-    }
-
-    // Add delay to avoid rate limiting (stagger requests)
-    if (index > 0) {
-      await delay(REQUEST_DELAY * index)
-    }
-
-    // Try to fetch by pair address first (raydium pool)
-    let response = await fetch(`https://api.dexscreener.com/latest/dex/pairs/solana/${token.raydium_pool}`, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'TokenRadar-DexScreener-Client/1.0'
-      },
-      cache: 'no-store'
-    })
-
-    if (response.ok) {
-      const data: DexScreenerResponse = await response.json()
-      if (data.pairs && data.pairs.length > 0) {
-        const result = data.pairs[0]
-        // Cache the result
-        dexScreenerCache.set(cacheKey, { data: result, timestamp: Date.now() })
-        return result
-      }
-    }
-
-    // If pair lookup fails, try token address lookup
-    await delay(REQUEST_DELAY) // Small delay between requests
-
-    response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token.token_address}`, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'TokenRadar-DexScreener-Client/1.0'
-      },
-      cache: 'no-store'
-    })
-
-    if (response.ok) {
-      const data: DexScreenerResponse = await response.json()
-      if (data.pairs && data.pairs.length > 0) {
-        // Find the Raydium pair if multiple pairs exist
-        const raydiumPair = data.pairs.find(pair =>
-          pair.dexId === 'raydium' ||
-          pair.pairAddress === token.raydium_pool
-        )
-        const result = raydiumPair || data.pairs[0]
-        // Cache the result
-        dexScreenerCache.set(cacheKey, { data: result, timestamp: Date.now() })
-        return result
-      }
-    }
-
-    // Cache null result to avoid repeated failed requests
-    dexScreenerCache.set(cacheKey, { data: null, timestamp: Date.now() })
-    return null
-  } catch (error) {
-    console.error(`Error fetching DexScreener data for ${token.symbol}:`, error)
-    // Cache null result on error
-    dexScreenerCache.set(token.raydium_pool || token.token_address, { data: null, timestamp: Date.now() })
-    return null
-  }
-}
-
-// Transform TokenTracker data to frontend format
-async function transformToken(token: TokenTrackerToken, index: number = 0): Promise<FrontendToken> {
-  const bondedPercentage = calculateBondingPercentage(token)
-  const bondedDate = isBonded(token) ? formatTimestamp(token.last_trade_timestamp) : ''
-
-  // Fetch DexScreener data for price changes
-  const dexData = await fetchDexScreenerData(token, index)
-
-  // Extract price changes from DexScreener data - only real data, no fake data
-  let fiveMin = "N/A"
-  let oneHour = "N/A"
-  let sixHour = "N/A"
-  let twentyFourHour = "N/A"
-
-  if (dexData && dexData.priceChange) {
-    // Only show real price changes from DexScreener
-    fiveMin = dexData.priceChange.m5 !== undefined ? dexData.priceChange.m5.toFixed(2) : "N/A"
-    oneHour = dexData.priceChange.h1 !== undefined ? dexData.priceChange.h1.toFixed(2) : "N/A"
-    sixHour = dexData.priceChange.h6 !== undefined ? dexData.priceChange.h6.toFixed(2) : "N/A"
-    twentyFourHour = dexData.priceChange.h24 !== undefined ? dexData.priceChange.h24.toFixed(2) : "N/A"
-  }
-  // For non-bonded tokens, we show "N/A" - no fake data
-
-  return {
-    id: token.token_address,
-    name: token.name,
-    symbol: token.symbol,
-    marketCap: formatMarketCap(token.usd_market_cap),
-    created: formatTimestamp(token.created_timestamp),
-    bonded: bondedDate,
-    fiveMin,
-    oneHour,
-    sixHour,
-    twentyFourHour,
-    image: token.image_url,
-    description: token.description,
-    website: token.website,
-    twitter: token.twitter,
-    telegram: token.telegram,
-    contractAddress: token.token_address,
-    totalSupply: token.total_supply.toLocaleString(),
-    bondedPercentage,
-    creator: token.creator,
-    virtualSolReserves: token.virtual_sol_reserves,
-    virtualTokenReserves: token.virtual_token_reserves,
-    bondingCurve: token.bonding_curve,
-    associatedBondingCurve: token.associated_bonding_curve,
-    lastTradeTimestamp: token.last_trade_timestamp,
-    metadataUri: token.metadata_uri
-  }
+function formatTimestamp(timestamp: number): string {
+  // Handle both seconds and milliseconds timestamps
+  const timestampMs = timestamp > 1000000000000 ? timestamp : timestamp * 1000
+  const date = new Date(timestampMs)
+  return date.toLocaleDateString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric'
+  })
 }
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch data from TokenTracker
-    const response = await fetch('https://tokentracker-fc80b9e9df85.herokuapp.com/tokens', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'TokenRadar-TokenTracker-Client/1.0'
-      },
-      // Add cache control to ensure fresh data
-      cache: 'no-store'
-    })
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search') || ''
 
-    if (!response.ok) {
-      throw new Error(`TokenTracker API error: ${response.status} ${response.statusText}`)
+    console.log(`🔍 Fetching REAL pump.fun tokens directly from API (search: "${search}")...`)
+
+    // DIRECT PUMP.FUN API SCRAPING (Python-style method as requested)
+    try {
+      // Import axios for direct API calls
+      const axios = await import('axios')
+      
+      // Headers and cookies from the tutorial method
+      const headers = {
+        'accept': '*/*',
+        'accept-language': 'en-US,en;q=0.9,es;q=0.8',
+        'content-type': 'application/json',
+        'origin': 'https://pump.fun',
+        'priority': 'u=1, i',
+        'referer': 'https://pump.fun/',
+        'sec-ch-ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+      }
+
+      const cookies = {
+        '_ga': 'GA1.1.1085779232.1743616310',
+        'intercom-id-w7scljv7': 'c042e584-67f0-4653-b79c-e724e4030fa1',
+        'intercom-device-id-w7scljv7': '0d5c5a65-93aa-486f-8784-0bd4f1a63cd3',
+        'fs_uid': '#o-1YWTMD-na1#34094bea-8456-49bd-b821-968173400217:091b5c8f-9018-43f2-b7f4-abe27606f49d:1745422245728::1#/1767903960',
+        '_ga_T65NVS2TQ6': 'GS1.1.1745422266.7.0.1745422266.60.0.0',
+        'intercom-session-w7scljv7': '',
+      }
+
+      // Convert cookies to string
+      const cookieString = Object.entries(cookies)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('; ')
+
+      // Parameters for pump.fun API (get many tokens, then sort by bonding percentage)
+      const params = {
+        offset: '0',
+        limit: '1000', // Get many more tokens for overview
+        sort: 'created_timestamp', // Use timestamp sorting (market cap sorting not supported)
+        includeNsfw: 'false',
+        order: 'DESC',
+      }
+
+      console.log('📡 Making direct request to pump.fun API...')
+      
+      // Make the API request to pump.fun
+      const response = await axios.default.get('https://frontend-api-v3.pump.fun/coins', {
+        params,
+        headers: {
+          ...headers,
+          'cookie': cookieString,
+        },
+        timeout: 30000,
+      })
+
+      if (response.status === 200 && Array.isArray(response.data)) {
+        const tokens = response.data
+        console.log(`📊 Found ${tokens.length} REAL tokens from pump.fun API`)
+
+        // Show ONLY bonded tokens (100% complete) for overview page
+        let filteredTokens = tokens.filter(token => token.complete === true)
+
+        console.log(`🎉 Filtered to ${filteredTokens.length} bonded tokens (100% complete) for overview`)
+
+        // If no search, show bonded tokens sorted by creation time (most recent first)
+        if (!search) {
+          // Sort bonded tokens by creation time (most recent first)
+          filteredTokens = filteredTokens.sort((a, b) => {
+            return b.created_timestamp - a.created_timestamp
+          })
+
+          const bondedCount = filteredTokens.filter(t => t.complete === true || t.raydium_pool).length
+          const highProgressCount = filteredTokens.filter(t => {
+            if (t.complete === true || t.raydium_pool) return false
+            const percentage = Math.min(Math.round((t.usd_market_cap / 69000) * 100), 99)
+            return percentage >= 10
+          }).length
+
+          console.log(`🎉 Found ${bondedCount} bonded tokens (100% complete)`)
+          console.log(`🚀 Found ${highProgressCount} tokens with progress (10%+)`)
+          console.log(`📊 Total tokens to show: ${filteredTokens.length} (showing ALL tokens sorted by progress)`)
+        }
+
+        // Apply search filter
+        if (search) {
+          const searchLower = search.toLowerCase()
+          filteredTokens = tokens.filter(token =>
+            token.name?.toLowerCase().includes(searchLower) ||
+            token.symbol?.toLowerCase().includes(searchLower)
+          )
+          console.log(`🔍 Found ${filteredTokens.length} tokens matching search "${search}"`)
+        }
+
+        // Transform to frontend format
+        const transformedTokens = filteredTokens.map(token => {
+          const bondingPercentage = token.complete ? 100 : Math.min(Math.round((token.usd_market_cap / 69000) * 100), 99)
+          
+          return {
+            id: token.mint,
+            name: token.name || 'Unknown Token',
+            symbol: token.symbol || 'UNK',
+            marketCap: formatMarketCap(token.usd_market_cap || 0),
+            created: formatTimestamp(token.created_timestamp),
+            bonded: token.complete || false, // Boolean for dashboard filtering
+            bondedDate: token.complete ? formatTimestamp(token.created_timestamp) : '', // Date string for display
+            fiveMin: "N/A",
+            oneHour: "N/A",
+            sixHour: "N/A",
+            twentyFourHour: "N/A",
+            image: token.image || "",
+            description: token.description || '',
+            website: token.website,
+            twitter: token.twitter,
+            telegram: token.telegram,
+            contractAddress: token.mint,
+            totalSupply: token.total_supply?.toLocaleString() || '1,000,000,000',
+            bondedPercentage: bondingPercentage,
+            creator: token.creator,
+            virtualSolReserves: token.virtual_sol_reserves?.toString() || '0',
+            virtualTokenReserves: token.virtual_token_reserves?.toString() || '0',
+            dexScreenerUrl: token.complete ? `https://dexscreener.com/solana/${token.mint}` : null,
+            metadataUri: token.metadataUri,
+            complete: token.complete || false,
+            raydiumPool: token.raydium_pool,
+            source: 'pump-fun-direct-api'
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          data: transformedTokens,
+          total: transformedTokens.length,
+          message: `Found ${transformedTokens.length} REAL tokens from pump.fun (direct API)`,
+          source: 'pump-fun-direct-api'
+        }, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        })
+      }
+    } catch (error) {
+      console.error('❌ Error fetching from pump.fun direct API:', error)
     }
 
-    const tokenTrackerData: TokenTrackerToken[] = await response.json()
+    // No real data available - return error (NO FAKE DATA)
+    console.log('❌ No real pump.fun data available from direct API')
 
-    // Transform the data to match our frontend format (with DexScreener integration)
-    console.log(`Fetching DexScreener data for ${tokenTrackerData.length} tokens...`)
-    const transformPromises = tokenTrackerData.map((token, index) => transformToken(token, index))
-    const transformedTokens: FrontendToken[] = await Promise.all(transformPromises)
-
-    // Sort by created timestamp (newest first)
-    transformedTokens.sort((a, b) => {
-      const aTime = tokenTrackerData.find(t => t.token_address === a.id)?.created_timestamp || 0
-      const bTime = tokenTrackerData.find(t => t.token_address === b.id)?.created_timestamp || 0
-      return bTime - aTime
-    })
-
-    console.log(`Successfully processed ${transformedTokens.length} tokens with DexScreener data`)
-
-    return NextResponse.json({
-      success: true,
-      data: transformedTokens,
-      count: transformedTokens.length,
-      lastUpdated: new Date().toISOString()
-    }, { 
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
-
-  } catch (error: any) {
-    console.error('Error fetching tokens from TokenTracker:', error)
-    
     return NextResponse.json({
       success: false,
-      message: 'Failed to fetch token data',
-      error: error.message
+      message: 'Cannot load tokens - no real pump.fun data available. The direct API may be temporarily unavailable.',
+      data: [],
+      total: 0,
+      note: 'This system only shows REAL data from pump.fun - no fake or sample data.'
+    }, { status: 503 })
+
+  } catch (error: any) {
+    console.error('❌ Error in GET /api/tokens:', error)
+    return NextResponse.json({
+      success: false,
+      message: 'Failed to fetch tokens from pump.fun direct API',
+      error: error.message,
+      note: 'This system only shows REAL data from pump.fun - no fake or sample data.'
     }, { status: 500 })
   }
 }

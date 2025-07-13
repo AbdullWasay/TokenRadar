@@ -1,15 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import BondStatus from "@/components/bond-status"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
-import { Bell, MoreHorizontal, Star } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { formatDistanceToNow } from "date-fns"
 import type { TokenData } from "@/lib/types"
-import BondStatus from "@/components/bond-status"
+import { formatDistanceToNow } from "date-fns"
+import { Bell, MoreHorizontal, Star } from "lucide-react"
+import Link from "next/link"
+import { useState } from "react"
 
 interface TokenGridProps {
   tokens: TokenData[]
@@ -43,13 +42,6 @@ export default function TokenGrid({ tokens }: TokenGridProps) {
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <Link href={`/token/${token.id}`} className="flex items-center">
-                <Image
-                  src={token.image || "/placeholder.svg"}
-                  alt={token.name}
-                  width={40}
-                  height={40}
-                  className="rounded-full mr-3"
-                />
                 <div>
                   <h3 className="font-bold">{token.name}</h3>
                   <span className="text-sm text-gray-400">${token.symbol}</span>

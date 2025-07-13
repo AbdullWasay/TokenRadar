@@ -5,7 +5,6 @@ import BondStatus from "@/components/bond-status"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowDown, ArrowUp, Bell, Star } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -38,9 +37,6 @@ export default function TokenCard({ token }: TokenCardProps) {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="relative h-10 w-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
-                <Image src={token.image || "/placeholder.svg"} alt={token.name} fill className="object-cover" />
-              </div>
               <div>
                 <h3 className="font-medium">{token.name}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">${token.symbol}</p>

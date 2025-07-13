@@ -18,10 +18,11 @@ export default function AllTokensPage() {
 
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting')
   const [previousTokenCount, setPreviousTokenCount] = useState<number>(0)
-  const [sortBy, setSortBy] = useState<'name' | 'created' | 'marketCap' | 'change24h'>('created')
+  const [sortBy, setSortBy] = useState<'name' | 'created' | 'marketCap' | 'bonding'>('bonding') // Default to bonding percentage
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showSortDropdown, setShowSortDropdown] = useState(false)
-  const tokensPerPage = 6
+  const [search, setSearch] = useState('')
+  const tokensPerPage = 20 // Show more tokens per page
 
   // Fetch tokens from API
   const fetchTokens = async () => {
@@ -29,18 +30,32 @@ export default function AllTokensPage() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('/api/tokens', {
+      const searchParams = new URLSearchParams({
+        limit: '1000',
+        sortBy: sortBy,
+        ...(search && { search: search })
+      })
+
+      const response = await fetch(`/api/tokens/all?${searchParams}`, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
         },
       })
 
+      const data: TokensApiResponse = await response.json()
+
+      // Handle 503 (no real data available) gracefully
+      if (response.status === 503) {
+        setTokens([])
+        setConnectionStatus('disconnected')
+        setError(data.message || 'No real pump.fun data available. Start the scraper to collect real data.')
+        return
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-
-      const data: TokensApiResponse = await response.json()
 
       if (data.success && data.data) {
         // Check for new tokens
@@ -55,7 +70,10 @@ export default function AllTokensPage() {
         setLastUpdated(data.lastUpdated || new Date().toISOString())
         setConnectionStatus('connected')
       } else {
-        throw new Error(data.message || 'Failed to fetch tokens')
+        // Handle case when no real data is available
+        setTokens([])
+        setConnectionStatus('disconnected')
+        throw new Error(data.message || 'Cannot load tokens - no real data available from pump.fun')
       }
     } catch (err: any) {
       console.error('Error fetching tokens:', err)
@@ -66,10 +84,10 @@ export default function AllTokensPage() {
     }
   }
 
-  // Initial load
+  // Load tokens when search or sortBy changes
   useEffect(() => {
     fetchTokens()
-  }, [])
+  }, [search, sortBy])
 
   // Removed auto-refresh - data loads only when page is accessed
 
@@ -206,7 +224,73 @@ export default function AllTokensPage() {
         </div>
       </div>
 
-      {tokens.length === 0 ? (
+      {/* Search and Sorting Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search tokens by name or symbol..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="bonding">Bonding %</option>
+            <option value="marketCap">Market Cap</option>
+            <option value="name">Name</option>
+            <option value="created">Created</option>
+          </select>
+
+          <Button
+            onClick={fetchTokens}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {error ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <h3 className="text-lg font-semibold text-red-600 mb-2">No Real Pump.fun Data Available</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500">
+                This application only displays <strong>REAL DATA</strong> from pump.fun - no fake or sample data.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                  <strong>To see real pump.fun tokens:</strong>
+                </p>
+                <ol className="text-sm text-blue-600 dark:text-blue-400 text-left space-y-1">
+                  <li>1. Visit <a href="/admin/scraper" className="underline hover:text-blue-800">/admin/scraper</a></li>
+                  <li>2. Click "Start Scraper" to begin collecting real pump.fun data</li>
+                  <li>3. Wait for the scraper to collect tokens from pump.fun</li>
+                  <li>4. Refresh this page to see real tokens</li>
+                </ol>
+              </div>
+              <Button
+                onClick={() => window.location.href = '/admin/scraper'}
+                className="mt-4"
+              >
+                Go to Scraper Admin
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : tokens.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-gray-600">No tokens found.</p>

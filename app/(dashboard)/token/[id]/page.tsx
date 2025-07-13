@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { TokenDetailData } from "@/lib/types"
 import { ArrowLeft, Bell, ExternalLink } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -51,7 +50,8 @@ export default function TokenDetail() {
             launchTime: data.data.launchTime,
             bondedPercentage: data.data.bondedPercentage,
             bondedTime: data.data.bondedTime,
-            image: data.data.image || "/placeholder.svg?height=64&width=64",
+            image: data.data.image || "",
+
             description: data.data.description || "No description available",
             website: data.data.website,
             twitter: data.data.twitter,
@@ -60,7 +60,7 @@ export default function TokenDetail() {
             holders: data.data.holders || 0,
             totalSupply: data.data.totalSupply,
             pairAddress: data.data.pairAddress || "",
-            transactions: [], // We'll implement real transactions later
+            transactions: data.data.transactions || [],
             fiveMin: data.data.fiveMin,
             oneHour: data.data.oneHour,
             sixHour: data.data.sixHour,
@@ -119,13 +119,6 @@ export default function TokenDetail() {
 
         <div className="flex justify-between items-start">
           <div className="flex items-center">
-            <Image
-              src={token.image || "/placeholder.svg"}
-              alt={token.name}
-              width={64}
-              height={64}
-              className="rounded-full mr-4"
-            />
             <div>
               <h1 className="text-3xl font-bold flex items-center">
                 {token.name}
@@ -156,6 +149,15 @@ export default function TokenDetail() {
             >
               <Bell size={16} className="mr-1" />
               Set Alert
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={() => window.open(`https://pump.fun/${token.contractAddress}`, '_blank')}
+            >
+              <ExternalLink size={16} className="mr-1" />
+              Pump.fun
             </Button>
             <Button
               variant="outline"
@@ -258,10 +260,45 @@ export default function TokenDetail() {
                   <TabsTrigger value="holders">Holders</TabsTrigger>
                 </TabsList>
                 <TabsContent value="transactions">
-                  <div className="text-center py-8">
-                    <h3 className="text-xl font-medium mb-2">Transaction data coming soon</h3>
-                    <p className="text-gray-500 dark:text-gray-400">Real transaction data will be implemented in a future update</p>
-                  </div>
+                  {token.transactions && token.transactions.length > 0 ? (
+                    <div className="space-y-4">
+                      {token.transactions.map((tx: any, index: number) => (
+                        <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  tx.type === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {tx.type?.toUpperCase() || 'TRADE'}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  {new Date(tx.timestamp).toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="text-sm">
+                                <span className="font-medium">{tx.amount || 'N/A'}</span> {token.symbol}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                Value: ${tx.value || 'N/A'}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-medium">${tx.price || 'N/A'}</div>
+                              <div className="text-xs text-gray-500">per token</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <h3 className="text-xl font-medium mb-2">No Recent Transactions</h3>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        No transaction data available for this token yet
+                      </p>
+                    </div>
+                  )}
                 </TabsContent>
                 <TabsContent value="holders">
                   <div className="text-center py-8">

@@ -62,6 +62,16 @@ export interface FrontendToken {
   associatedBondingCurve?: string
   lastTradeTimestamp?: number
   metadataUri?: string
+  dexScreenerUrl?: string | null
+  raydiumPool?: string
+  scrapedAt?: Date | string
+  bondedAt?: Date | string
+  isNewlyBonded?: boolean
+  source?: string
+  wasNewlyBonded?: boolean
+  minutesAgoBonded?: number | null
+  bondedTimestamp?: Date | string
+  address?: string
 }
 
 // API response interface for tokens endpoint
@@ -147,6 +157,7 @@ export interface Alert {
   triggeredPercentage?: number
   createdAt: Date
   updatedAt: Date
+  read?: boolean
 }
 
 export interface CreateAlertRequest {

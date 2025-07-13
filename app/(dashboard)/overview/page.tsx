@@ -28,13 +28,27 @@ export default function OverviewPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const tokensPerPage = 6 // 2 rows × 3 columns
   const [wishlistTokenIds, setWishlistTokenIds] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
 
-  const fetchTokens = async (showLoading = true) => {
+  const fetchTokens = async (showLoading = true, search = '') => {
     try {
       if (showLoading) {
         setLoading(true)
       }
-      const response = await fetch('/api/tokens', {
+
+      const params = new URLSearchParams({
+        limit: '1000',
+        offset: '0',
+        bondedOnly: 'true' // Only fetch bonded tokens for overview page
+      })
+
+      if (search) {
+        params.append('search', search)
+      }
+
+      // Fetch bonded tokens only
+      const response = await fetch(`/api/tokens/all?${params}`, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
@@ -46,6 +60,7 @@ export default function OverviewPage() {
       const data: TokensApiResponse = await response.json()
 
       if (data.success && data.data) {
+        // API already returns only bonded tokens
         setTokens(data.data)
 
         // Update selected token data if it exists in the new data
@@ -102,6 +117,31 @@ export default function OverviewPage() {
     } finally {
       setVolumeLoading(false)
     }
+  }
+
+  const handleSearch = async () => {
+    if (searchQuery.trim()) {
+      setSearchLoading(true)
+      await fetchTokens(false, searchQuery.trim())
+      setSearchLoading(false)
+      setCurrentPage(0) // Reset to first page
+    } else {
+      // If search is empty, fetch all tokens
+      await fetchTokens(false)
+      setCurrentPage(0)
+    }
+  }
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
+
+  const clearSearch = () => {
+    setSearchQuery('')
+    fetchTokens(false)
+    setCurrentPage(0)
   }
 
   useEffect(() => {
@@ -265,7 +305,7 @@ export default function OverviewPage() {
           tokenId: token.id,
           tokenName: token.name,
           tokenSymbol: token.symbol,
-          tokenAddress: token.address || null
+          tokenAddress: token.contractAddress || token.id || null
         })
       })
 
@@ -307,13 +347,13 @@ export default function OverviewPage() {
     } catch (error) {
       console.error('Error adding to wishlist:', error)
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
       })
       toast({
         title: "❌ Network Error",
-        description: `Failed to add to wishlist: ${error.message}`,
+        description: `Failed to add to wishlist: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
         duration: 5000,
       })
@@ -378,6 +418,46 @@ export default function OverviewPage() {
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
+      </div>
+
+      {/* Search */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Search tokens by name or symbol..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={handleSearchKeyPress}
+            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+        <Button
+          onClick={handleSearch}
+          disabled={searchLoading}
+          variant="default"
+        >
+          {searchLoading ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          )}
+        </Button>
+        {searchQuery && (
+          <Button
+            onClick={clearSearch}
+            variant="outline"
+          >
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* Token Selection */}

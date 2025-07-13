@@ -31,12 +31,19 @@ export default function MarketOverview({ tokens, loading }: MarketOverviewProps)
     if (tokens.length > 0) {
       // Calculate real market statistics
       const totalTokens = tokens.length
-      const bondedTokens = tokens.filter(token => token.bonded).length
+      const bondedTokens = tokens.filter(token => {
+        // Check if token is bonded using multiple criteria
+        return token.bonded || token.complete || token.bondedPercentage === 100
+      }).length
       const newTokens24h = tokens.filter(token => {
-        const created = new Date(token.created)
-        const now = new Date()
-        const diffHours = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
-        return diffHours <= 24
+        try {
+          const created = new Date(token.created)
+          const now = new Date()
+          // Check if created today (same calendar day)
+          return created.toDateString() === now.toDateString()
+        } catch {
+          return false
+        }
       }).length
 
       // Calculate total market cap (sum of all token market caps)

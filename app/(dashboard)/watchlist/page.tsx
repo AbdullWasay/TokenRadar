@@ -191,37 +191,41 @@ export default function WatchlistPage() {
           </p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {wishlistItems.map((item) => (
-              <div
+              <Card
                 key={item.id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-blue-200"
               >
-                <div className="flex items-center gap-3">
-                  <div>
-                    <div className="font-medium">{item.tokenSymbol}</div>
-                    <div className="text-sm text-gray-500">{item.tokenName}</div>
-                    <div className="text-xs text-gray-400">
-                      Added: {new Date(item.addedAt).toLocaleDateString()}
+                <CardContent className="p-4">
+                  <div className="flex flex-col h-full">
+                    <div className="flex-1">
+                      <div className="font-semibold text-lg mb-1">{item.tokenSymbol}</div>
+                      <div className="text-sm text-gray-600 mb-2 line-clamp-2">{item.tokenName}</div>
+                      <div className="text-xs text-gray-400 mb-3">
+                        Added: {new Date(item.addedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <Button variant="outline" size="sm" asChild className="flex-1 mr-2">
+                        <Link href={`/token/${item.tokenId}`}>
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFromWishlist(item.id)}
+                        className="text-red-500 hover:text-red-700 px-2"
+                      >
+                        ×
+                      </Button>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/token/${item.tokenId}`}>
-                      <Eye className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFromWishlist(item.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    ×
-                  </Button>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </CardContent>
@@ -229,9 +233,7 @@ export default function WatchlistPage() {
     )
   }
 
-  // Split tokens into two sections
-  const recommendedTokens = tokens.slice(0, 5)
-  const newTokens = tokens.slice(5, 10)
+  // No need to split tokens - we only show wishlist
 
   const renderTokenTable = (tokens: FrontendToken[], title: string) => (
     <Card className="mb-6">
@@ -347,12 +349,6 @@ export default function WatchlistPage() {
 
       {/* Wishlist */}
       {renderWishlist()}
-
-      {/* Recommended Tokens */}
-      {renderTokenTable(recommendedTokens, "Recommend Tokens")}
-
-      {/* New Tokens */}
-      {renderTokenTable(newTokens, "New Tokens")}
     </div>
   )
 }

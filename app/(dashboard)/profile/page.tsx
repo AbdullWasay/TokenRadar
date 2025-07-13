@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/lib/auth-context"
-import type { FrontendToken, TokensApiResponse } from "@/lib/types"
 import { useWallet } from "@/lib/wallet-context"
 import { Copy, Crown, Edit } from "lucide-react"
 import Image from "next/image"
@@ -56,8 +55,8 @@ export default function ProfilePage() {
   const [isWalletConnectPopupOpen, setIsWalletConnectPopupOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(user?.subscriptionStatus || "free")
   const [copied, setCopied] = useState(false)
-  const [tradeHistory, setTradeHistory] = useState<FrontendToken[]>([])
-  const [loadingTrades, setLoadingTrades] = useState(true)
+  const [wishlistItems, setWishlistItems] = useState<any[]>([])
+  const [loadingWishlist, setLoadingWishlist] = useState(true)
   const [profileImage, setProfileImage] = useState<string>("")
   const [uploadingImage, setUploadingImage] = useState(false)
 
@@ -80,31 +79,74 @@ export default function ProfilePage() {
     marketCapAlerts: false,
   })
 
-  // Fetch trade history (recent tokens for demo - replace with actual user trade history)
-  const fetchTradeHistory = async () => {
+  // Fetch wishlist items
+  const fetchWishlist = async () => {
     try {
-      setLoadingTrades(true)
-      const response = await fetch('/api/tokens', {
+      setLoadingWishlist(true)
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!authToken) {
+        setWishlistItems([])
+        setLoadingWishlist(false)
+        return
+      }
+
+      const response = await fetch('/api/wishlist', {
         method: 'GET',
-        headers: { 'Cache-Control': 'no-cache' },
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Cache-Control': 'no-cache',
+        },
       })
 
       if (response.ok) {
-        const data: TokensApiResponse = await response.json()
+        const data = await response.json()
         if (data.success && data.data) {
-          // Take first 5 tokens as sample trade history
-          setTradeHistory(data.data.slice(0, 5))
+          setWishlistItems(data.data)
+        } else {
+          setWishlistItems([])
         }
       }
     } catch (error) {
-      console.error('Error fetching trade history:', error)
+      console.error('Error fetching wishlist:', error)
+      setWishlistItems([])
     } finally {
-      setLoadingTrades(false)
+      setLoadingWishlist(false)
+    }
+  }
+
+  // Remove item from wishlist
+  const removeFromWishlist = async (itemId: string) => {
+    try {
+      const authToken = localStorage.getItem('auth_token')
+      if (!authToken) return
+
+      const response = await fetch(`/api/wishlist/${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      })
+
+      if (response.ok) {
+        setWishlistItems(prev => prev.filter(item => item.id !== itemId))
+        toast({
+          title: "Success",
+          description: "Token removed from wishlist",
+        })
+      }
+    } catch (error) {
+      console.error('Error removing from wishlist:', error)
+      toast({
+        title: "Error",
+        description: "Failed to remove token from wishlist",
+        variant: "destructive",
+      })
     }
   }
 
   useEffect(() => {
-    fetchTradeHistory()
+    fetchWishlist()
   }, [])
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,100 +291,65 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Recent Trade History - Premium Feature */}
-      <PremiumGuard feature="trade history">
-        <Card>
+      {/* Wishlist */}
+      <Card>
         <CardHeader>
-          <CardTitle>Recent Trade History</CardTitle>
+          <CardTitle>My Wishlist</CardTitle>
+          <p className="text-sm text-gray-600">
+            Tokens you've added to your wishlist
+          </p>
         </CardHeader>
         <CardContent>
-          {/* Mobile Card Layout */}
-          <div className="md:hidden space-y-4">
-            {loadingTrades ? (
-              <div className="py-8 text-center text-gray-500">
-                Loading trade history...
-              </div>
-            ) : tradeHistory.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
-                No trade history available
-              </div>
-            ) : (
-              tradeHistory.map((token, index) => (
-                <div key={token.id || index} className="bg-white dark:bg-gray-800 rounded-lg border p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-sm">{token.name}</div>
-                      <div className="text-xs text-gray-500">{token.symbol}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-yellow-600">{token.marketCap}</div>
-                      <div className="text-xs text-gray-500">{new Date(token.created).toLocaleDateString()}</div>
-                    </div>
-                  </div>
+          {loadingWishlist ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Loading wishlist...</p>
+            </div>
+          ) : wishlistItems.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Your wishlist is empty.</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Add tokens from the overview page to track them here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {wishlistItems.map((item) => (
+                <Card
+                  key={item.id}
+                  className="hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-blue-200"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg mb-1">{item.tokenSymbol}</div>
+                        <div className="text-sm text-gray-600 mb-2 line-clamp-2">{item.tokenName}</div>
+                        <div className="text-xs text-gray-400 mb-3">
+                          Added: {new Date(item.addedAt).toLocaleDateString()}
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <span className="text-gray-500">Bonded:</span>
-                      <div className="font-medium">{token.bonded ? 'Yes' : 'No'}</div>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">24h Change:</span>
-                      <div className={`font-medium ${parseFloat(token.twentyFourHour || '0') >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {token.twentyFourHour || 'N/A'}%
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <Button variant="outline" size="sm" className="flex-1 mr-2">
+                          View
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFromWishlist(item.id)}
+                          className="text-red-500 hover:text-red-700 px-2"
+                        >
+                          ×
+                        </Button>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Desktop Table Layout */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b text-sm text-gray-600">
-                  <th className="text-left py-3 px-2">Name</th>
-                  <th className="text-left py-3 px-2">Symbol</th>
-                  <th className="text-left py-3 px-2">Market Cap</th>
-                  <th className="text-left py-3 px-2">Created</th>
-                  <th className="text-left py-3 px-2">Bonded</th>
-                  <th className="text-left py-3 px-2">24h Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingTrades ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">
-                      Loading trade history...
-                    </td>
-                  </tr>
-                ) : tradeHistory.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">
-                      No trade history available
-                    </td>
-                  </tr>
-                ) : (
-                  tradeHistory.map((token, index) => (
-                    <tr key={token.id || index} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <td className="py-3 px-2">{token.name}</td>
-                      <td className="py-3 px-2">{token.symbol}</td>
-                      <td className="py-3 px-2 text-yellow-600">{token.marketCap}</td>
-                      <td className="py-3 px-2">{new Date(token.created).toLocaleDateString()}</td>
-                      <td className="py-3 px-2">{token.bonded ? 'Yes' : 'No'}</td>
-                      <td className={`py-3 px-2 ${parseFloat(token.twentyFourHour || '0') >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {token.twentyFourHour || 'N/A'}%
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
-        </Card>
-      </PremiumGuard>
+      </Card>
 
       {/* Email Notifications - Premium Feature */}
       <PremiumGuard feature="email notifications">

@@ -9,6 +9,7 @@ type Wallet = {
   publicKey: string | null
   connected: boolean
   balance: number | null
+  connect?: () => Promise<void>
 }
 
 type WalletContextType = {
@@ -114,14 +115,4 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// Add this to global.d.ts or a similar type definition file
-declare global {
-  interface Window {
-    solana?: {
-      connect: (options?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString: () => string } }>
-      disconnect: () => Promise<void>
-      signTransaction: (transaction: any) => Promise<any>
-      signAllTransactions: (transactions: any[]) => Promise<any[]>
-    }
-  }
-}
+// Window types are declared in types/window.d.ts

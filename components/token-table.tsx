@@ -150,11 +150,9 @@ export default function TokenTable({ tokens }: TokenTableProps) {
                 <td className="px-4 py-3 text-sm text-yellow-500">{token.marketCap}</td>
                 <td className="px-4 py-3 text-sm">{token.created}</td>
                 <td className="px-4 py-3 text-sm">
-                  {token.bonded || (
-                    <span className="text-gray-400 text-xs">
-                      {token.bondedPercentage ? `${token.bondedPercentage}%` : 'Not bonded'}
-                    </span>
-                  )}
+                  <span className={`px-2 py-1 rounded-full text-xs ${token.bonded ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {token.bonded ? 'Yes' : 'No'}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-sm">
                   <div className="flex items-center">

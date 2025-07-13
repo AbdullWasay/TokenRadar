@@ -1,15 +1,13 @@
 "use client"
 import MarketOverview from "@/components/market-overview"
 import NewlyBondedTokens from "@/components/newly-bonded-tokens"
-import TokenCard from "@/components/token-card"
 import TokenTable from "@/components/token-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import WelcomeBanner from "@/components/welcome-banner"
 import type { FrontendToken, TokensApiResponse } from "@/lib/types"
-import { BarChart2, Bell, ChevronDown, Filter, Plus, RefreshCw, Zap } from "lucide-react"
+import { BarChart2, Bell, Plus, Zap } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -19,6 +17,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("all")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [tokens, setTokens] = useState<FrontendToken[]>([])
+  const [bondedTokens, setBondedTokens] = useState<FrontendToken[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,24 +25,33 @@ export default function Dashboard() {
   const fetchTokens = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/tokens', {
+
+      // Fetch all tokens for dashboard display
+      const allTokensResponse = await fetch('/api/tokens/all?limit=1000', {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
         },
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      const allTokensData: TokensApiResponse = await allTokensResponse.json()
+
+      // Handle 503 (no real data available) gracefully
+      if (allTokensResponse.status === 503) {
+        setTokens([])
+        setError(allTokensData.message || 'No real pump.fun data available. Start the scraper to collect real data.')
+        return
       }
 
-      const data: TokensApiResponse = await response.json()
+      if (!allTokensResponse.ok) {
+        throw new Error(`HTTP error! status: ${allTokensResponse.status}`)
+      }
 
-      if (data.success && data.data) {
-        setTokens(data.data)
+      if (allTokensData.success && allTokensData.data) {
+        setTokens(allTokensData.data)
         setError(null)
       } else {
-        throw new Error(data.message || 'Failed to fetch tokens')
+        throw new Error(allTokensData.message || 'Failed to fetch tokens')
       }
     } catch (error: any) {
       console.error('Error fetching tokens:', error)
@@ -111,105 +119,14 @@ export default function Dashboard() {
 
       <NewlyBondedTokens tokens={tokens} loading={loading} />
 
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Watchlist</h2>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-            {isRefreshing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="ml-2">Refresh</span>
-          </Button>
-        </div>
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <div className="h-16 bg-gray-200 rounded"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-8">
-            <p className="text-red-500 mb-4">Error loading tokens: {error}</p>
-            <Button onClick={handleRefresh} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {topTokens.map((token) => (
-              <TokenCard key={token.id} token={token} />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Removed Watchlist section as requested */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg font-semibold">New Tokens</CardTitle>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Last 24 hours</DropdownMenuItem>
-                  <DropdownMenuItem>Last 7 days</DropdownMenuItem>
-                  <DropdownMenuItem>Last 30 days</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="p-4">
-                <div className="animate-pulse space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-12 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <TokenTable tokens={featuredTokens.slice(0, 3)} />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg font-semibold">Recommended Tokens</CardTitle>
-              <Button variant="ghost" size="sm" className="h-8 gap-1">
-                <span>Sort by</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="p-4">
-                <div className="animate-pulse space-y-3">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-12 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <TokenTable tokens={featuredTokens.slice(0, 2)} />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Removed New Tokens and Recommended Tokens sections as requested */}
 
       <Card>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-lg font-semibold">New Tokens</CardTitle>
+            <CardTitle className="text-lg font-semibold">All Tokens</CardTitle>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
               <TabsList className="bg-muted h-8">
                 <TabsTrigger value="all" className="text-xs h-7">
@@ -277,13 +194,15 @@ export default function Dashboard() {
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
                 {tokens.filter(token => {
+                  // Count tokens bonded on the same day
+                  if (!token.bonded) return false
                   const created = new Date(token.created)
                   const now = new Date()
-                  const diffHours = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
-                  return diffHours <= 24
+                  // Check if bonded on the same calendar day
+                  return created.toDateString() === now.toDateString()
                 }).length}
               </div>
-              <div className="text-sm text-gray-500">New (24h)</div>
+              <div className="text-sm text-gray-500">Newly Bonded (Today)</div>
             </div>
           </div>
         </CardContent>

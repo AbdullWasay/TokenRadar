@@ -1,11 +1,10 @@
 "use client"
 
-import Link from "next/link"
-import Image from "next/image"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUp, Flame, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { ArrowUp, Flame, Star } from "lucide-react"
+import Link from "next/link"
 
 interface TrendingTokenCardProps {
   token: {
@@ -36,9 +35,6 @@ export default function TrendingTokenCard({ token, rank }: TrendingTokenCardProp
           </div>
 
           <div className="flex items-center gap-3 mb-4">
-            <div className="relative h-12 w-12 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
-              <Image src={token.image || "/placeholder.svg"} alt={token.name} fill className="object-cover" />
-            </div>
             <div>
               <h3 className="font-medium">{token.name}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">${token.symbol}</p>

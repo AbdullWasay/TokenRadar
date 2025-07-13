@@ -18,19 +18,29 @@ interface NewlyBondedTokensProps {
 export default function NewlyBondedTokens({ tokens, loading }: NewlyBondedTokensProps) {
   const [activeTab, setActiveTab] = useState<"bonded" | "almost">("bonded")
 
-  // Filter tokens for newly bonded (bonded in last 24 hours)
+  // Filter tokens for newly bonded (100% bonded tokens from today)
   const newlyBondedTokens = tokens.filter(token => {
-    if (!token.bonded) return false
-    const bondedDate = new Date(token.bonded)
-    const now = new Date()
-    const diffHours = (now.getTime() - bondedDate.getTime()) / (1000 * 60 * 60)
-    return diffHours <= 24
+    const bondingPercentage = token.bondedPercentage || 0
+    const isBonded = bondingPercentage >= 100 || token.bonded
+
+    if (!isBonded) return false
+
+    // Check if bonded today (same calendar day)
+    try {
+      const tokenDate = new Date(token.created)
+      const today = new Date()
+      const isSameDay = tokenDate.toDateString() === today.toDateString()
+      return isSameDay
+    } catch {
+      return false
+    }
   }).slice(0, 5)
 
-  // Filter tokens for almost bonded (80%+ bonding percentage but not fully bonded)
-  const almostBondedTokens = tokens.filter(token =>
-    !token.bonded && (token.bondedPercentage || 0) >= 80
-  ).slice(0, 5)
+  // Filter tokens for almost bonded (90%+ bonding percentage but not fully bonded)
+  const almostBondedTokens = tokens.filter(token => {
+    const bondingPercentage = token.bondedPercentage || 0
+    return bondingPercentage >= 90 && bondingPercentage < 100 && !token.bonded
+  }).slice(0, 5)
 
   return (
     <Card>

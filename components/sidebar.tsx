@@ -7,13 +7,14 @@ import { useAuth } from "@/lib/auth-context"
 import { useSidebarContext } from "@/lib/sidebar-context"
 import { cn } from "@/lib/utils"
 import {
-  Bell,
-  Compass,
-  LayoutDashboard,
-  LineChart,
-  Star,
-  User,
-  Zap
+    Bell,
+    Compass,
+    LayoutDashboard,
+    LineChart,
+    Star,
+    TrendingUp,
+    User,
+    Zap
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -31,6 +32,7 @@ export default function Sidebar() {
   const mainNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, premium: true },
     { name: "All Tokens", href: "/all-tokens", icon: Compass, premium: false }, // Free users can view tokens
+    { name: "Bonded Tokens", href: "/bonded", icon: TrendingUp, premium: false }, // Show newly bonded tokens
     { name: "Watchlist", href: "/watchlist", icon: Star, premium: true },
     { name: "Overview", href: "/overview", icon: Zap, premium: true },
   ]

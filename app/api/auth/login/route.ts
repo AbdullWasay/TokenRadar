@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
-import dbConnect from '@/lib/mongodb'
-import User from '@/lib/models/User'
 import { comparePassword, generateToken, isValidEmail } from '@/lib/auth'
 import { handleApiError } from '@/lib/middleware'
-import type { LoginRequest, AuthResponse } from '@/lib/types'
+import User from '@/lib/models/User'
+import dbConnect from '@/lib/mongodb'
+import type { AuthResponse, LoginRequest } from '@/lib/types'
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 
 // Validation schema
 const loginSchema = z.object({
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Generate JWT token
     const token = generateToken({
-      userId: user._id.toString(),
+      userId: (user._id as any).toString(),
       email: user.email,
       name: user.name,
       subscriptionStatus: user.subscriptionStatus
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Login successful',
       user: {
-        id: user._id.toString(),
+        id: (user._id as any).toString(),
         name: user.name,
         email: user.email,
         subscriptionStatus: user.subscriptionStatus,

@@ -1,4 +1,5 @@
 import SolanaWalletProvider from "@/components/solana-wallet-provider"
+import StartupInitializer from "@/components/startup-initializer"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/lib/auth-context"
@@ -7,6 +8,8 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import type React from "react"
 import "./globals.css"
+
+
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -32,6 +35,7 @@ export default function RootLayout({
           <SolanaWalletProvider>
             <WalletProvider>
               <AuthProvider>
+                <StartupInitializer />
                 {children}
                 <Toaster />
               </AuthProvider>
