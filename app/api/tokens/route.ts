@@ -3,6 +3,39 @@ import { NextRequest, NextResponse } from 'next/server'
 // DIRECT PUMP.FUN API SCRAPING - NO FAKE DATA
 // This endpoint uses the Python-style method to fetch real data directly from pump.fun
 
+// DexScreener API integration
+async function fetchDexScreenerData(tokenAddress: string) {
+  try {
+    const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`, {
+      headers: {
+        'User-Agent': 'TokenRadar/1.0'
+      }
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+    if (data.pairs && data.pairs.length > 0) {
+      const pair = data.pairs[0] // Get the first pair (usually the most liquid)
+      return {
+        priceChange: {
+          m5: pair.priceChange?.m5 || 0,
+          h1: pair.priceChange?.h1 || 0,
+          h6: pair.priceChange?.h6 || 0,
+          h24: pair.priceChange?.h24 || 0
+        },
+        volume: pair.volume || {},
+        liquidity: pair.liquidity || {},
+        priceUsd: pair.priceUsd || '0'
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Error fetching DexScreener data:', error)
+    return null
+  }
+}
+
 function formatMarketCap(marketCap: number): string {
   if (marketCap >= 1000000) {
     return `$${(marketCap / 1000000).toFixed(2)}M`

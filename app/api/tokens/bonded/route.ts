@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
             created: formatTimestamp(token.created_timestamp),
             bonded: token.complete ? formatTimestamp(token.created_timestamp) : '',
             bondedAt: token.complete ? formatTime(new Date(token.created_timestamp * 1000)) : 'Not bonded',
-            bondedTimestamp: token.complete ? token.created_timestamp * 1000 : null,
+            bondedTimestamp: token.complete ? token.created_timestamp : null,
             fiveMin: "N/A",
             oneHour: "N/A",
             sixHour: "N/A",

@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Alert, AlertsApiResponse, FrontendToken, TokensApiResponse } from "@/lib/types"
 import { formatDistanceToNow } from "date-fns"
-import { Bell, BellOff, Clock, Edit, MoreHorizontal, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { Bell, BellOff, Clock, Edit, MoreHorizontal, RefreshCw, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 // Real data will be fetched from MongoDB via API
@@ -206,9 +206,7 @@ export default function AlertsPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={() => setIsCreateAlertOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="mr-2 h-4 w-4" /> Create Alert
-          </Button>
+
         </div>
       </div>
 
@@ -245,10 +243,7 @@ export default function AlertsPage() {
               <div className="text-center py-12">
                 <Bell className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                 <h3 className="text-lg font-medium mb-2">No bond alerts</h3>
-                <p className="text-gray-500 dark:text-gray-400">Create alerts to get notified when tokens reach bonding milestones</p>
-                <Button className="mt-4" onClick={() => setIsCreateAlertOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Create Alert
-                </Button>
+                <p className="text-gray-500 dark:text-gray-400">No bond alerts have been set up yet</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -348,12 +343,9 @@ export default function AlertsPage() {
               <div className="text-center py-12">
                 <Bell className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                 <h3 className="text-lg font-medium mb-2">No price alerts</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  Get notified when a token reaches a specific price
+                <p className="text-gray-500 dark:text-gray-400">
+                  No price alerts have been set up yet
                 </p>
-                <Button onClick={() => setIsCreateAlertOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
-                  <Plus className="mr-2 h-4 w-4" /> Create Alert
-                </Button>
               </div>
             ) : (
               <>
@@ -398,7 +390,7 @@ export default function AlertsPage() {
                         </div>
                         <div>
                           <span className="text-gray-500">Price:</span>
-                          <div className="font-medium">${alert.threshold.toLocaleString()}</div>
+                          <div className="font-medium">${alert.threshold}</div>
                         </div>
                         <div>
                           <span className="text-gray-500">Created:</span>
@@ -466,7 +458,7 @@ export default function AlertsPage() {
                             {alert.condition}
                           </Badge>
                         </td>
-                        <td className="py-4 px-4">${alert.threshold.toLocaleString()}</td>
+                        <td className="py-4 px-4">${alert.threshold}</td>
                         <td className="py-4 px-4">{formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true })}</td>
                         <td className="py-4 px-4">
                           <div className="flex items-center">
@@ -518,12 +510,9 @@ export default function AlertsPage() {
               <div className="text-center py-12">
                 <Bell className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                 <h3 className="text-lg font-medium mb-2">No percentage alerts</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  Get notified when a token price changes by a certain percentage
+                <p className="text-gray-500 dark:text-gray-400">
+                  No percentage alerts have been set up yet
                 </p>
-                <Button onClick={() => setIsCreateAlertOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
-                  <Plus className="mr-2 h-4 w-4" /> Create Alert
-                </Button>
               </div>
             ) : (
               <>
@@ -771,18 +760,33 @@ export default function AlertsPage() {
 
             <div className="grid gap-2">
               <Label htmlFor="token">Token</Label>
-              <Select value={selectedToken} onValueChange={setSelectedToken}>
-                <SelectTrigger id="token">
-                  <SelectValue placeholder="Select token" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="btc">Bitcoin (BTC)</SelectItem>
-                  <SelectItem value="eth">Ethereum (ETH)</SelectItem>
-                  <SelectItem value="sol">Solana (SOL)</SelectItem>
-                  <SelectItem value="ada">Cardano (ADA)</SelectItem>
-                  <SelectItem value="doge">Dogecoin (DOGE)</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="token"
+                type="text"
+                placeholder="Search token by name or symbol..."
+                value={selectedToken}
+                onChange={(e) => setSelectedToken(e.target.value)}
+              />
+              {selectedToken && tokens.length > 0 && (
+                <div className="max-h-40 overflow-y-auto border rounded-md bg-white dark:bg-gray-800">
+                  {tokens
+                    .filter(token =>
+                      token.name.toLowerCase().includes(selectedToken.toLowerCase()) ||
+                      token.symbol.toLowerCase().includes(selectedToken.toLowerCase())
+                    )
+                    .slice(0, 10)
+                    .map((token) => (
+                      <div
+                        key={token.id}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                        onClick={() => setSelectedToken(token.id)}
+                      >
+                        {token.name} ({token.symbol})
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
             </div>
 
             {alertType === "bond" ? (

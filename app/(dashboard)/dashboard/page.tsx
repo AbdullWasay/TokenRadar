@@ -4,10 +4,9 @@ import NewlyBondedTokens from "@/components/newly-bonded-tokens"
 import TokenTable from "@/components/token-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import WelcomeBanner from "@/components/welcome-banner"
 import type { FrontendToken, TokensApiResponse } from "@/lib/types"
-import { BarChart2, Bell, Plus, Zap } from "lucide-react"
+import { BarChart2, Bell, Zap } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -100,17 +99,20 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent className="grid gap-3 sm:gap-4">
-              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
-                <Plus className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Add New Token</span>
+              <Button asChild className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
+                <Link href="/alerts">
+                  <Bell className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Create Alert</span>
+                </Link>
               </Button>
-              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
-                <Bell className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Create Alert</span>
+              <Button asChild className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
+                <Link href="/bonded">
+                  <BarChart2 className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">View Bonded Tokens</span>
+                </Link>
               </Button>
-              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
-                <BarChart2 className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">View Analytics</span>
-              </Button>
-              <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
-                <Zap className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Upgrade Plan</span>
+              <Button asChild className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
+                <Link href="/profile">
+                  <Zap className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Upgrade Plan</span>
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -127,19 +129,7 @@ export default function Dashboard() {
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg font-semibold">All Tokens</CardTitle>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-              <TabsList className="bg-muted h-8">
-                <TabsTrigger value="all" className="text-xs h-7">
-                  All
-                </TabsTrigger>
-                <TabsTrigger value="bonded" className="text-xs h-7">
-                  Bonded
-                </TabsTrigger>
-                <TabsTrigger value="unbonded" className="text-xs h-7">
-                  Unbonded
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -152,61 +142,18 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <TokenTable tokens={
-              activeTab === "bonded"
-                ? featuredTokens.filter(token => token.bonded)
-                : activeTab === "unbonded"
-                ? featuredTokens.filter(token => !token.bonded)
-                : featuredTokens
-            } />
+            <TokenTable tokens={featuredTokens} />
           )}
+          <div className="p-3 text-center border-t">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/all-tokens">View All Tokens</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       {/* Real-time Token Statistics */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg font-semibold">Live Statistics</CardTitle>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/all-tokens">View All Tokens</Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{tokens.length}</div>
-              <div className="text-sm text-gray-500">Total Tokens</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {tokens.filter(token => token.bonded).length}
-              </div>
-              <div className="text-sm text-gray-500">Bonded Tokens</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">
-                {tokens.filter(token => !token.bonded).length}
-              </div>
-              <div className="text-sm text-gray-500">Unbonded Tokens</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {tokens.filter(token => {
-                  // Count tokens bonded on the same day
-                  if (!token.bonded) return false
-                  const created = new Date(token.created)
-                  const now = new Date()
-                  // Check if bonded on the same calendar day
-                  return created.toDateString() === now.toDateString()
-                }).length}
-              </div>
-              <div className="text-sm text-gray-500">Newly Bonded (Today)</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
     </div>
   )
 }

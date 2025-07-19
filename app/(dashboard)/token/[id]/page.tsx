@@ -1,10 +1,8 @@
 "use client"
 
 import AlertModal from "@/components/alert-modal"
-import TokenStats from "@/components/token-stats"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { TokenDetailData } from "@/lib/types"
 import { ArrowLeft, Bell, ExternalLink } from "lucide-react"
 import Link from "next/link"
@@ -18,6 +16,8 @@ export default function TokenDetail() {
   const [token, setToken] = useState<TokenDetailData | null>(null)
   const [loading, setLoading] = useState(true)
   const [alertModalOpen, setAlertModalOpen] = useState(false)
+  const [isInWishlist, setIsInWishlist] = useState(false)
+  const [wishlistLoading, setWishlistLoading] = useState(false)
 
   useEffect(() => {
     const fetchTokenDetails = async () => {
@@ -83,6 +83,30 @@ export default function TokenDetail() {
       fetchTokenDetails()
     }
   }, [id])
+
+  // Wishlist functionality
+  const handleWishlistToggle = async () => {
+    if (!token) return
+
+    setWishlistLoading(true)
+    try {
+      const method = isInWishlist ? 'DELETE' : 'POST'
+      const response = await fetch(`/api/wishlist/${token.id}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        setIsInWishlist(!isInWishlist)
+      }
+    } catch (error) {
+      console.error('Error toggling wishlist:', error)
+    } finally {
+      setWishlistLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -153,6 +177,15 @@ export default function TokenDetail() {
             <Button
               variant="outline"
               size="sm"
+              className="flex items-center gap-1 border-blue-500 text-blue-500 hover:bg-blue-50"
+              onClick={handleWishlistToggle}
+              disabled={wishlistLoading}
+            >
+              {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               className="flex items-center gap-1"
               onClick={() => window.open(`https://pump.fun/${token.contractAddress}`, '_blank')}
             >
@@ -172,8 +205,8 @@ export default function TokenDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="w-full">
+        <div>
           <Card className="mb-6">
             <CardContent className="p-6">
               <div className="flex justify-between items-center mb-6">
@@ -249,70 +282,101 @@ export default function TokenDetail() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <Tabs defaultValue="transactions">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                  <TabsTrigger value="holders">Holders</TabsTrigger>
-                </TabsList>
-                <TabsContent value="transactions">
-                  {token.transactions && token.transactions.length > 0 ? (
+              {/* Token Info Section */}
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="mb-8">
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-white">Token Info</h3>
                     <div className="space-y-4">
-                      {token.transactions.map((tx: any, index: number) => (
-                        <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                  tx.type === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {tx.type?.toUpperCase() || 'TRADE'}
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                  {new Date(tx.timestamp).toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="text-sm">
-                                <span className="font-medium">{tx.amount || 'N/A'}</span> {token.symbol}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                Value: ${tx.value || 'N/A'}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-medium">${tx.price || 'N/A'}</div>
-                              <div className="text-xs text-gray-500">per token</div>
-                            </div>
+                      <div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Description</div>
+                        <p className="text-sm text-gray-300">{token.description || 'No description available'}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Launch Time</div>
+                          <div className="text-sm font-medium text-gray-300">
+                            {new Date(token.launchTime).toLocaleDateString()}
                           </div>
                         </div>
-                      ))}
+                        <div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Bonded</div>
+                          <div className="text-sm font-medium text-gray-300">{token.bondedPercentage}%</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Links</div>
+                        <div className="text-sm text-gray-500">No social links available</div>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <h3 className="text-xl font-medium mb-2">No Recent Transactions</h3>
-                      <p className="text-gray-500 dark:text-gray-400">
-                        No transaction data available for this token yet
-                      </p>
-                    </div>
-                  )}
-                </TabsContent>
-                <TabsContent value="holders">
-                  <div className="text-center py-8">
-                    <h3 className="text-xl font-medium mb-2">Holders data coming soon</h3>
-                    <p className="text-gray-500 dark:text-gray-400">This feature is under development</p>
                   </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+
+                {/* Market Stats and Contract Info Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Market Stats */}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-white">Market Stats</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Price</span>
+                        <span className="text-sm font-medium text-white">${token.price.toFixed(8)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">24h Change</span>
+                        <span className={`text-sm font-medium ${token.change24h >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          {token.change24h >= 0 ? "+" : ""}
+                          {token.change24h}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Market Cap</span>
+                        <span className="text-sm font-medium text-white">{token.marketCap}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">24h Volume</span>
+                        <span className="text-sm font-medium text-white">${token.volume24h?.toLocaleString() || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Holders</span>
+                        <span className="text-sm font-medium text-white">{token.holders?.toLocaleString() || '0'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contract Info */}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-white">Contract Info</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Contract Address</div>
+                        <div className="flex items-center">
+                          <code className="text-xs bg-gray-700 p-2 rounded w-full overflow-hidden text-ellipsis text-gray-300">
+                            {token.contractAddress}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-1 h-8 w-8 p-0 text-gray-400 hover:text-white"
+                            onClick={() => {
+                              navigator.clipboard.writeText(token.contractAddress)
+                              alert('Contract address copied!')
+                            }}
+                          >
+                            📋
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div>
-          <TokenStats token={token} />
         </div>
       </div>
 

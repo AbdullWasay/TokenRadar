@@ -7,12 +7,7 @@ import type { FrontendToken, TokensApiResponse } from "@/lib/types"
 import { Bell, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
 
-interface VolumeData {
-  m5: number
-  h1: number
-  h6: number
-  h24: number
-}
+
 
 export default function OverviewPage() {
   const { toast } = useToast()
@@ -20,8 +15,6 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedToken, setSelectedToken] = useState<FrontendToken | null>(null)
-  const [volumeData, setVolumeData] = useState<VolumeData | null>(null)
-  const [volumeLoading, setVolumeLoading] = useState(false)
   const [priceThreshold, setPriceThreshold] = useState<string>('')
   const [isCreatingAlert, setIsCreatingAlert] = useState(false)
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false)
@@ -68,12 +61,10 @@ export default function OverviewPage() {
           const updatedSelectedToken = data.data.find(token => token.id === selectedToken.id)
           if (updatedSelectedToken) {
             setSelectedToken(updatedSelectedToken)
-            await fetchVolumeData(updatedSelectedToken)
           }
         } else if (data.data.length > 0) {
           // Only set initial token if no token is selected
           setSelectedToken(data.data[0])
-          await fetchVolumeData(data.data[0])
         }
         setError(null)
       } else {
@@ -88,36 +79,7 @@ export default function OverviewPage() {
     }
   }
 
-  const fetchVolumeData = async (token: FrontendToken) => {
-    try {
-      setVolumeLoading(true)
-      // Fetch detailed token data to get volume information
-      const response = await fetch(`/api/tokens/${token.id}`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-      })
 
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.data) {
-          // Extract volume data from the detailed token response
-          setVolumeData({
-            m5: data.data.volume?.m5 || 0,
-            h1: data.data.volume?.h1 || 0,
-            h6: data.data.volume?.h6 || 0,
-            h24: data.data.volume24h || 0
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching volume data:', error)
-      setVolumeData(null)
-    } finally {
-      setVolumeLoading(false)
-    }
-  }
 
   const handleSearch = async () => {
     if (searchQuery.trim()) {
@@ -364,7 +326,6 @@ export default function OverviewPage() {
 
   const handleTokenSelection = async (token: FrontendToken) => {
     setSelectedToken(token)
-    await fetchVolumeData(token)
   }
 
   const formatPriceChange = (value: string) => {
@@ -769,28 +730,7 @@ export default function OverviewPage() {
               </div>
             </div>
 
-            {/* Volume Row */}
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="mb-2">
-                <span className="font-medium text-gray-700">
-                  VOLUME {volumeLoading && <span className="text-xs text-blue-500 ml-2">updating...</span>}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-center">
-                <span className="text-gray-600 font-medium">
-                  {volumeLoading ? '...' : (volumeData?.m5 ? `$${volumeData.m5.toLocaleString()}` : 'N/A')}
-                </span>
-                <span className="text-gray-600 font-medium">
-                  {volumeLoading ? '...' : (volumeData?.h1 ? `$${volumeData.h1.toLocaleString()}` : 'N/A')}
-                </span>
-                <span className="text-gray-600 font-medium">
-                  {volumeLoading ? '...' : (volumeData?.h6 ? `$${volumeData.h6.toLocaleString()}` : 'N/A')}
-                </span>
-                <span className="text-gray-600 font-medium">
-                  {volumeLoading ? '...' : (volumeData?.h24 ? `$${volumeData.h24.toLocaleString()}` : 'N/A')}
-                </span>
-              </div>
-            </div>
+
           </CardContent>
         </Card>
       </div>

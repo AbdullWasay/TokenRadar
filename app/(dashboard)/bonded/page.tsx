@@ -27,14 +27,14 @@ export default function BondedTokensPage() {
   const [tokens, setTokens] = useState<BondedToken[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [timeFrame, setTimeFrame] = useState(60); // minutes
+
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchBondedTokens = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/tokens/bonded?search=${encodeURIComponent(search)}&minutes=${timeFrame}&limit=1000`, {
+      const response = await fetch(`/api/tokens/bonded?search=${encodeURIComponent(search)}&limit=1000`, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
@@ -64,7 +64,7 @@ export default function BondedTokensPage() {
 
   useEffect(() => {
     fetchBondedTokens();
-  }, [search, timeFrame]);
+  }, [search]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -74,49 +74,13 @@ export default function BondedTokensPage() {
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefresh, search, timeFrame]);
+  }, [autoRefresh, search]);
 
   const handleRefresh = () => {
     fetchBondedTokens();
   };
 
-  const formatTimeAgo = (timestamp: string) => {
-    const now = new Date();
-    let bondedTime: Date;
 
-    // Handle different timestamp formats
-    if (timestamp.length === 10) {
-      // Unix timestamp in seconds
-      bondedTime = new Date(parseInt(timestamp) * 1000);
-    } else if (timestamp.length === 13) {
-      // Unix timestamp in milliseconds
-      bondedTime = new Date(parseInt(timestamp));
-    } else {
-      // Try parsing as ISO string
-      bondedTime = new Date(timestamp);
-    }
-
-    // Validate the date
-    if (isNaN(bondedTime.getTime())) {
-      return 'Unknown';
-    }
-
-    const diffMs = now.getTime() - bondedTime.getTime();
-
-    // If negative difference, something is wrong with the timestamp
-    if (diffMs < 0) {
-      return 'Recently';
-    }
-
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    // Show "Recently" only for less than 1 hour, otherwise show hours ago
-    if (diffHours < 1) return 'Recently';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
 
   return (
     <div className="space-y-6">
@@ -164,19 +128,6 @@ export default function BondedTokensPage() {
         </div>
         
         <div className="flex gap-2">
-          <select
-            value={timeFrame}
-            onChange={(e) => setTimeFrame(parseInt(e.target.value))}
-            className="px-3 py-2 border border-input bg-background rounded-md text-sm"
-          >
-            <option value={15}>Last 15 minutes</option>
-            <option value={30}>Last 30 minutes</option>
-            <option value={60}>Last hour</option>
-            <option value={180}>Last 3 hours</option>
-            <option value={360}>Last 6 hours</option>
-            <option value={720}>Last 12 hours</option>
-            <option value={1440}>Last 24 hours</option>
-          </select>
         </div>
       </div>
 
@@ -199,9 +150,9 @@ export default function BondedTokensPage() {
                 <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No bonded tokens found</h3>
                 <p className="text-muted-foreground">
-                  {search ? 
-                    `No tokens matching "${search}" found in the selected time frame.` :
-                    `No tokens have bonded in the last ${timeFrame} minutes.`
+                  {search ?
+                    `No tokens matching "${search}" found.` :
+                    `No bonded tokens found.`
                   }
                 </p>
               </div>
@@ -222,7 +173,9 @@ export default function BondedTokensPage() {
                       {(() => {
                         // Show "New" tag only for tokens bonded on the same day
                         if (token.bondedTimestamp) {
-                          const bondedTime = new Date(parseInt(token.bondedTimestamp));
+                          // Handle both seconds and milliseconds timestamps
+                          const timestamp = parseInt(token.bondedTimestamp);
+                          const bondedTime = new Date(timestamp > 1000000000000 ? timestamp : timestamp * 1000);
                           const now = new Date();
 
                           // Check if bonded on the same calendar day
@@ -244,9 +197,6 @@ export default function BondedTokensPage() {
                   
                   <div className="text-right">
                     <div className="text-lg font-semibold">{token.marketCap}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {token.bondedTimestamp ? formatTimeAgo(token.bondedTimestamp) : 'Unknown'}
-                    </div>
                   </div>
                 </div>
               </CardHeader>
@@ -258,6 +208,29 @@ export default function BondedTokensPage() {
                   </div>
                   
                   <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`/api/wishlist/${token.id}`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                          })
+                          if (response.ok) {
+                            alert('Added to wishlist!')
+                          }
+                        } catch (error) {
+                          console.error('Error adding to wishlist:', error)
+                        }
+                      }}
+                    >
+                      Add to Wishlist
+                    </Button>
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -285,11 +258,7 @@ export default function BondedTokensPage() {
         )}
       </div>
 
-      {tokens.length > 0 && (
-        <div className="text-center text-sm text-muted-foreground">
-          Showing {tokens.length} bonded tokens
-        </div>
-      )}
+
     </div>
   );
 }

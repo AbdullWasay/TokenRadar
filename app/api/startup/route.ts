@@ -26,6 +26,18 @@ export async function GET(request: NextRequest) {
       console.error('❌ Failed to start continuous API scraping:', error);
     }
 
+    // Start alert checking service
+    try {
+      console.log('🔔 Starting alert checking service...');
+
+      const { startAlertChecking } = await import('@/lib/services/alert-checker');
+      startAlertChecking();
+
+      console.log('✅ Alert checking service started successfully!');
+    } catch (error) {
+      console.error('❌ Failed to start alert checking service:', error);
+    }
+
     // Test direct pump.fun API connection
     try {
       console.log('🧪 Testing direct pump.fun API connection...');

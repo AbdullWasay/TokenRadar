@@ -1,16 +1,16 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { FrontendToken } from "@/lib/types"
-import { ArrowDown, ArrowUp, DollarSign, TrendingDown, TrendingUp } from "lucide-react"
+import { TrendingUp } from "lucide-react"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 
 interface MarketStats {
+  bondedTokensLast24h: number
+  totalBondedTokens: number
   totalTokens: number
-  bondedTokens: number
-  totalMarketCap: string
-  newTokens24h: number
-  avgBondingPercentage: number
 }
 
 interface MarketOverviewProps {
@@ -20,142 +20,116 @@ interface MarketOverviewProps {
 
 export default function MarketOverview({ tokens, loading }: MarketOverviewProps) {
   const [marketStats, setMarketStats] = useState<MarketStats>({
-    totalTokens: 0,
-    bondedTokens: 0,
-    totalMarketCap: "$0",
-    newTokens24h: 0,
-    avgBondingPercentage: 0
+    bondedTokensLast24h: 0,
+    totalBondedTokens: 0,
+    totalTokens: 0
   })
 
   useEffect(() => {
-    if (tokens.length > 0) {
-      // Calculate real market statistics
-      const totalTokens = tokens.length
-      const bondedTokens = tokens.filter(token => {
-        // Check if token is bonded using multiple criteria
-        return token.bonded || token.complete || token.bondedPercentage === 100
-      }).length
-      const newTokens24h = tokens.filter(token => {
+    const fetchBondedTokensToday = async () => {
+      if (tokens.length > 0) {
+        const totalTokens = tokens.length
+
+        // Count total bonded tokens
+        const totalBondedTokens = tokens.filter(token => {
+          return token.bonded || token.bondedPercentage === 100
+        }).length
+
+        // Count bonded tokens created today - use exact same logic as bonded tokens page
         try {
-          const created = new Date(token.created)
-          const now = new Date()
-          // Check if created today (same calendar day)
-          return created.toDateString() === now.toDateString()
-        } catch {
-          return false
+          const response = await fetch('/api/tokens/bonded?limit=1000', {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
+          })
+          const data = await response.json()
+
+          let bondedTokensToday = 0
+          if (data.success && data.data) {
+            const now = new Date()
+
+            // Count tokens with "New" badge (exact same logic as bonded tokens page)
+            bondedTokensToday = data.data.filter((token: any) => {
+              if (token.bondedTimestamp) {
+                // Handle both seconds and milliseconds timestamps
+                const timestamp = parseInt(token.bondedTimestamp)
+                const bondedTime = new Date(timestamp > 1000000000000 ? timestamp : timestamp * 1000)
+                const isSameDay = bondedTime.toDateString() === now.toDateString()
+                return isSameDay
+              }
+              return false
+            }).length
+          }
+
+          setMarketStats({
+            totalTokens,
+            totalBondedTokens,
+            bondedTokensLast24h: bondedTokensToday
+          })
+        } catch (error) {
+          console.error('Error fetching bonded tokens for market overview:', error)
+          setMarketStats({
+            totalTokens,
+            totalBondedTokens,
+            bondedTokensLast24h: 0
+          })
         }
-      }).length
-
-      // Calculate total market cap (sum of all token market caps)
-      const totalMarketCapValue = tokens.reduce((sum, token) => {
-        const mcValue = parseFloat(token.marketCap.replace(/[$,]/g, '')) || 0
-        return sum + mcValue
-      }, 0)
-
-      // Calculate average bonding percentage
-      const avgBondingPercentage = tokens.reduce((sum, token) => {
-        return sum + (token.bondedPercentage || 0)
-      }, 0) / totalTokens
-
-      setMarketStats({
-        totalTokens,
-        bondedTokens,
-        totalMarketCap: `$${totalMarketCapValue.toLocaleString()}`,
-        newTokens24h,
-        avgBondingPercentage: Math.round(avgBondingPercentage)
-      })
+      }
     }
+
+    fetchBondedTokensToday()
   }, [tokens])
 
-  const stats = [
-    {
-      name: "Total Tokens",
-      value: marketStats.totalTokens.toString(),
-      change: marketStats.newTokens24h,
-      icon: DollarSign,
-      color: "text-indigo-600",
-    },
-    {
-      name: "Bonded Tokens",
-      value: marketStats.bondedTokens.toString(),
-      change: Math.round((marketStats.bondedTokens / marketStats.totalTokens) * 100) || 0,
-      icon: TrendingUp,
-      color: "text-green-500",
-    },
-    {
-      name: "New (24h)",
-      value: marketStats.newTokens24h.toString(),
-      change: marketStats.avgBondingPercentage,
-      icon: TrendingDown,
-      color: "text-blue-500",
-    },
-  ]
+
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold">Market Overview</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4">
         {loading ? (
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="space-y-1 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-20"></div>
-                <div className="h-8 bg-gray-200 rounded w-16"></div>
-                <div className="h-4 bg-gray-200 rounded w-12"></div>
-              </div>
-            ))}
+          <div className="text-center py-4">
+            <div className="animate-pulse">
+              <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-3"></div>
+              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded mx-auto mb-2"></div>
+              <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded mx-auto"></div>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            {stats.map((stat) => (
-              <div key={stat.name} className="space-y-1">
-                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                  <stat.icon className={`h-4 w-4 mr-1 ${stat.color}`} />
-                  <span>{stat.name}</span>
+          <div className="flex items-center justify-between py-6">
+            {/* Left: Icon and Stats */}
+            <div className="flex items-center space-x-6">
+              <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-7 h-7 text-white" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
+                  {marketStats.bondedTokensLast24h}
                 </div>
-                <div className="text-2xl font-semibold">{stat.value}</div>
-                <div className={`flex items-center text-sm ${stat.change > 0 ? "text-green-500" : "text-red-500"}`}>
-                  {stat.change > 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                  <span>{Math.abs(stat.change)}{stat.name === "Bonded Tokens" ? "%" : ""}</span>
+                <div className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                  New Bonded Tokens Today
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Tokens that reached 100% bonding today
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Right: Action Button */}
+            <Button
+              className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow transform transition hover:scale-105 text-sm"
+              asChild
+            >
+              <Link href="/bonded">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                View All
+              </Link>
+            </Button>
           </div>
+
         )}
-
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Token Distribution</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{marketStats.bondedTokens}</div>
-              <div className="text-sm text-green-600">Bonded Tokens</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">{marketStats.totalTokens - marketStats.bondedTokens}</div>
-              <div className="text-sm text-yellow-600">Unbonded Tokens</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Market Activity</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-300">Total Market Cap</span>
-              <span className="font-medium">{marketStats.totalMarketCap}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-300">Avg Bonding %</span>
-              <span className="font-medium">{marketStats.avgBondingPercentage}%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-300">New Tokens (24h)</span>
-              <span className="font-medium text-blue-600">{marketStats.newTokens24h}</span>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )
