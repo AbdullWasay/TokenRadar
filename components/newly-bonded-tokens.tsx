@@ -5,33 +5,35 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { FrontendToken } from "@/lib/types"
 import { Bell } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
-interface NewlyBondedTokensProps {
-  tokens: FrontendToken[]
-  loading: boolean
-}
+export default function NewlyBondedTokens() {
+  const [bondedTokens, setBondedTokens] = useState<FrontendToken[]>([])
+  const [bondedLoading, setBondedLoading] = useState(true)
 
-export default function NewlyBondedTokens({ tokens, loading }: NewlyBondedTokensProps) {
+  // Fetch top 2 tokens from bonded tokens API
+  useEffect(() => {
+    const fetchBondedTokens = async () => {
+      try {
+        setBondedLoading(true)
+        const response = await fetch('/api/tokens/bonded?limit=2')
+        const data = await response.json()
 
-  // Filter tokens for newly bonded (100% bonded tokens from today)
-  const newlyBondedTokens = tokens.filter(token => {
-    const bondingPercentage = token.bondedPercentage || 0
-    const isBonded = bondingPercentage >= 100 || token.bonded
-
-    if (!isBonded) return false
-
-    // Check if bonded today (same calendar day)
-    try {
-      const tokenDate = new Date(token.created)
-      const today = new Date()
-      const isSameDay = tokenDate.toDateString() === today.toDateString()
-      return isSameDay
-    } catch {
-      return false
+        if (data.success && data.data) {
+          setBondedTokens(data.data.slice(0, 2)) // Take only top 2
+        }
+      } catch (error) {
+        console.error('Error fetching bonded tokens:', error)
+      } finally {
+        setBondedLoading(false)
+      }
     }
-  }).slice(0, 5)
+
+    fetchBondedTokens()
+  }, [])
+
+  const newlyBondedTokens = bondedTokens
 
 
 
@@ -44,7 +46,7 @@ export default function NewlyBondedTokens({ tokens, loading }: NewlyBondedTokens
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y divide-border">
-          {loading ? (
+          {bondedLoading ? (
             <div className="p-4">
               <div className="animate-pulse space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -68,13 +70,7 @@ export default function NewlyBondedTokens({ tokens, loading }: NewlyBondedTokens
             <div key={token.id} className="p-4 hover:bg-muted/50 transition-colors">
               <div className="flex items-start justify-between">
                 <div className="flex items-center">
-                  <Image
-                    src={token.image || "/placeholder.svg"}
-                    alt={token.name}
-                    width={40}
-                    height={40}
-                    className="rounded-full mr-3"
-                  />
+                
                   <div>
                     <Link href={`/token/${token.id}`} className="font-medium hover:underline">
                       {token.name}

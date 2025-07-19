@@ -119,7 +119,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <NewlyBondedTokens tokens={tokens} loading={loading} />
+      <NewlyBondedTokens />
 
       {/* Removed Watchlist section as requested */}
 

@@ -156,6 +156,8 @@ export async function GET(request: NextRequest) {
               created: formatTimestamp(token.created_timestamp),
               bonded: isBonded,
               bondedDate: isBonded ? formatTimestamp(token.created_timestamp) : '',
+              bondedAt: isBonded ? new Date(token.created_timestamp * 1000).toISOString() : null,
+              bondedTimestamp: isBonded ? token.created_timestamp * 1000 : null,
               fiveMin: dexData?.priceChange?.m5 !== undefined ? dexData.priceChange.m5.toFixed(2) : "N/A",
               oneHour: dexData?.priceChange?.h1 !== undefined ? dexData.priceChange.h1.toFixed(2) : "N/A",
               sixHour: dexData?.priceChange?.h6 !== undefined ? dexData.priceChange.h6.toFixed(2) : "N/A",
