@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
 import { Clock, ExternalLink, Loader2, RefreshCw, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -24,12 +25,95 @@ interface BondedToken {
 }
 
 export default function BondedTokensPage() {
+  const { toast } = useToast();
   const [tokens, setTokens] = useState<BondedToken[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [wishlistTokenIds, setWishlistTokenIds] = useState<string[]>([]);
+  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
 
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Check wishlist status for current tokens (same as overview page)
+  const checkWishlistStatus = async (tokenIds: string[]) => {
+    try {
+      const authToken = localStorage.getItem('auth_token')
+      if (!authToken) {
+        setWishlistTokenIds([])
+        return
+      }
+
+      const response = await fetch('/api/wishlist', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ tokenIds })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setWishlistTokenIds(data.data || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error checking wishlist status:', error)
+      setWishlistTokenIds([])
+    }
+  }
+
+  // Check wishlist status when tokens change
+  useEffect(() => {
+    if (tokens.length > 0) {
+      const tokenIds = tokens.map(token => token.id)
+      checkWishlistStatus(tokenIds)
+    }
+  }, [tokens])
+
+  // Add token to wishlist (simplified version like overview page)
+  const addToWishlist = async (token: BondedToken) => {
+    if (!token) return
+
+    setIsAddingToWishlist(true)
+    try {
+      const authToken = localStorage.getItem('auth_token')
+      if (!authToken) {
+        console.log('No auth token found')
+        return
+      }
+
+      const response = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          tokenId: token.id,
+          tokenName: token.name,
+          tokenSymbol: token.symbol,
+          tokenAddress: token.contractAddress || token.id || null
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        // Update wishlist status (same as overview page)
+        setWishlistTokenIds(prev => [...prev, token.id])
+        console.log(`✅ ${token.symbol} added to wishlist`)
+      } else {
+        console.error('Failed to add to wishlist:', data)
+      }
+    } catch (error) {
+      console.error('Error adding to wishlist:', error)
+    } finally {
+      setIsAddingToWishlist(false)
+    }
+  }
 
   const fetchBondedTokens = async () => {
     try {
@@ -46,7 +130,7 @@ export default function BondedTokensPage() {
       }
 
       const data = await response.json();
-      
+
       if (data.success && Array.isArray(data.data)) {
         setTokens(data.data);
         setLastUpdated(new Date());
@@ -91,7 +175,7 @@ export default function BondedTokensPage() {
             Tokens that have reached 100% bonding curve completion
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button
             onClick={handleRefresh}
@@ -106,7 +190,7 @@ export default function BondedTokensPage() {
             )}
             Refresh
           </Button>
-          
+
           <Button
             onClick={() => setAutoRefresh(!autoRefresh)}
             variant={autoRefresh ? "default" : "outline"}
@@ -126,7 +210,7 @@ export default function BondedTokensPage() {
             className="w-full"
           />
         </div>
-        
+
         <div className="flex gap-2">
         </div>
       </div>
@@ -194,42 +278,41 @@ export default function BondedTokensPage() {
                       })()}
                     </CardDescription>
                   </div>
-                  
+
                   <div className="text-right">
                     <div className="text-lg font-semibold">{token.marketCap}</div>
                   </div>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="pt-0">
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-muted-foreground">
                     Created: {token.created}
                   </div>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-blue-500 text-blue-500 hover:bg-blue-50"
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(`/api/wishlist/${token.id}`, {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                          })
-                          if (response.ok) {
-                            alert('Added to wishlist!')
-                          }
-                        } catch (error) {
-                          console.error('Error adding to wishlist:', error)
-                        }
-                      }}
-                    >
-                      Add to Wishlist
-                    </Button>
+
+                  <div className="flex items-center gap-2">
+                    {/* Wishlist status indicator (same as overview page) */}
+                    {wishlistTokenIds.includes(token.id) && (
+                      <div className="flex items-center gap-1 text-red-500">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                        <span className="text-xs">In Wishlist</span>
+                      </div>
+                    )}
+                    {!wishlistTokenIds.includes(token.id) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          addToWishlist(token)
+                        }}
+                        disabled={isAddingToWishlist}
+                        className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
+                      >
+                        {isAddingToWishlist ? 'Adding...' : 'Add to Wishlist'}
+                      </button>
+                    )}
 
                     <Button
                       variant="outline"

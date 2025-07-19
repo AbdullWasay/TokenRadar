@@ -3,6 +3,7 @@
 import AlertModal from "@/components/alert-modal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useToast } from "@/components/ui/use-toast"
 import type { TokenDetailData } from "@/lib/types"
 import { ArrowLeft, Bell, ExternalLink } from "lucide-react"
 import Link from "next/link"
@@ -12,6 +13,7 @@ import { useEffect, useState } from "react"
 export default function TokenDetail() {
   const params = useParams()
   const { id } = params
+  const { toast } = useToast()
 
   const [token, setToken] = useState<TokenDetailData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -84,25 +86,73 @@ export default function TokenDetail() {
     }
   }, [id])
 
-  // Wishlist functionality
+  // Add token to wishlist (using same implementation as overview page)
   const handleWishlistToggle = async () => {
     if (!token) return
 
     setWishlistLoading(true)
     try {
-      const method = isInWishlist ? 'DELETE' : 'POST'
-      const response = await fetch(`/api/wishlist/${token.id}`, {
-        method,
+      const authToken = localStorage.getItem('auth_token')
+      if (!authToken) {
+        toast({
+          title: "❌ Login Required",
+          description: "Please log in to add tokens to your wishlist.",
+          variant: "destructive",
+          duration: 5000,
+        })
+        return
+      }
+
+      const response = await fetch('/api/wishlist', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
+        body: JSON.stringify({
+          tokenId: token.id,
+          tokenName: token.name,
+          tokenSymbol: token.symbol,
+          tokenAddress: token.contractAddress || token.id || null
+        })
       })
 
-      if (response.ok) {
-        setIsInWishlist(!isInWishlist)
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        toast({
+          title: "✅ Added to Wishlist!",
+          description: `${token.symbol} has been added to your wishlist.`,
+          action: (
+            <a
+              href="/watchlist"
+              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
+              onClick={() => {
+                window.location.href = '/watchlist'
+              }}
+            >
+              View Wishlist
+            </a>
+          ),
+          duration: 8000,
+        })
+        setIsInWishlist(true)
+      } else {
+        toast({
+          title: "❌ Failed to Add",
+          description: data.error || `Failed to add token to wishlist.`,
+          variant: "destructive",
+          duration: 5000,
+        })
       }
     } catch (error) {
-      console.error('Error toggling wishlist:', error)
+      console.error('Error adding to wishlist:', error)
+      toast({
+        title: "❌ Network Error",
+        description: `Failed to add to wishlist: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+        duration: 5000,
+      })
     } finally {
       setWishlistLoading(false)
     }
