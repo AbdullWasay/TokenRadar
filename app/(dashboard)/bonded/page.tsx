@@ -31,9 +31,26 @@ export default function BondedTokensPage() {
   const [search, setSearch] = useState('');
   const [wishlistTokenIds, setWishlistTokenIds] = useState<string[]>([]);
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
+  const [marketCapFilter, setMarketCapFilter] = useState({ min: '', max: '' });
 
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Helper function to parse market cap string to number
+  const parseMarketCap = (marketCapStr: string): number => {
+    if (!marketCapStr || marketCapStr === 'N/A') return 0;
+
+    // Remove $ and convert K/M to numbers
+    const cleanStr = marketCapStr.replace('$', '').toLowerCase();
+
+    if (cleanStr.includes('k')) {
+      return parseFloat(cleanStr.replace('k', '')) * 1000;
+    } else if (cleanStr.includes('m')) {
+      return parseFloat(cleanStr.replace('m', '')) * 1000000;
+    } else {
+      return parseFloat(cleanStr) || 0;
+    }
+  };
 
   // Check wishlist status for current tokens (same as overview page)
   const checkWishlistStatus = async (tokenIds: string[]) => {
@@ -158,7 +175,7 @@ export default function BondedTokensPage() {
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefresh, search]);
+  }, [autoRefresh]);
 
   const handleRefresh = () => {
     fetchBondedTokens();
@@ -201,17 +218,48 @@ export default function BondedTokensPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search tokens by name or symbol..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full"
-          />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Search tokens by name or symbol..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full"
+            />
+          </div>
         </div>
 
-        <div className="flex gap-2">
+        {/* Market Cap Filter */}
+        <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Market Cap Filter:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-700 dark:text-gray-300">Min:</span>
+            <Input
+              placeholder="e.g. 100K"
+              value={marketCapFilter.min}
+              onChange={(e) => setMarketCapFilter(prev => ({ ...prev, min: e.target.value }))}
+              className="w-24"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-700 dark:text-gray-300">Max:</span>
+            <Input
+              placeholder="e.g. 10M"
+              value={marketCapFilter.max}
+              onChange={(e) => setMarketCapFilter(prev => ({ ...prev, max: e.target.value }))}
+              className="w-24"
+            />
+          </div>
+          <Button
+            onClick={() => setMarketCapFilter({ min: '', max: '' })}
+            variant="outline"
+            size="sm"
+          >
+            Clear
+          </Button>
         </div>
       </div>
 
@@ -221,29 +269,64 @@ export default function BondedTokensPage() {
         </div>
       )}
 
-      <div className="grid gap-4">
-        {loading && tokens.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading bonded tokens...</span>
-          </div>
-        ) : tokens.length === 0 ? (
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center">
-                <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No bonded tokens found</h3>
-                <p className="text-muted-foreground">
-                  {search ?
-                    `No tokens matching "${search}" found.` :
-                    `No bonded tokens found.`
-                  }
-                </p>
+      {/* Filter and display tokens */}
+      {(() => {
+        let filteredTokens = tokens;
+
+        // Apply search filter
+        if (search) {
+          filteredTokens = filteredTokens.filter(token =>
+            token.name.toLowerCase().includes(search.toLowerCase()) ||
+            token.symbol.toLowerCase().includes(search.toLowerCase())
+          );
+        }
+
+        // Apply market cap filter
+        if (marketCapFilter.min || marketCapFilter.max) {
+          filteredTokens = filteredTokens.filter(token => {
+            const tokenMarketCap = parseMarketCap(token.marketCap);
+
+            let passesMin = true;
+            let passesMax = true;
+
+            if (marketCapFilter.min) {
+              const minValue = parseMarketCap(marketCapFilter.min);
+              passesMin = tokenMarketCap >= minValue;
+            }
+
+            if (marketCapFilter.max) {
+              const maxValue = parseMarketCap(marketCapFilter.max);
+              passesMax = tokenMarketCap <= maxValue;
+            }
+
+            return passesMin && passesMax;
+          });
+        }
+
+        return (
+          <div className="grid gap-4">
+            {loading && tokens.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="ml-2">Loading bonded tokens...</span>
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          tokens.map((token) => (
+            ) : filteredTokens.length === 0 ? (
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No bonded tokens found</h3>
+                    <p className="text-muted-foreground">
+                      {search || marketCapFilter.min || marketCapFilter.max ?
+                        `No tokens matching your filters found.` :
+                        `No bonded tokens found.`
+                      }
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredTokens.map((token) => (
             <Card key={token.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
@@ -337,10 +420,11 @@ export default function BondedTokensPage() {
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
-
+              ))
+            )}
+          </div>
+        );
+      })()}
 
     </div>
   );

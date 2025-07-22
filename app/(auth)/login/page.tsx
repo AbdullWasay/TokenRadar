@@ -29,6 +29,7 @@ export default function LoginPage() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [loginError, setLoginError] = useState<string>('')
   const router = useRouter()
   const { toast } = useToast()
 
@@ -36,7 +37,7 @@ export default function LoginPage() {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
 
-    // Clear error when user types
+    // Clear errors when user types
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev }
@@ -44,21 +45,27 @@ export default function LoginPage() {
         return newErrors
       })
     }
+
+    // Clear login error when user types
+    if (loginError) {
+      setLoginError('')
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setErrors({})
+    setLoginError('')
 
     try {
       // Validate form data
       loginSchema.parse(formData)
 
       // Call login function from auth context
-      const success = await login(formData.email, formData.password)
+      const result = await login(formData.email, formData.password)
 
-      if (success) {
+      if (result.success) {
         // Get user data from auth context after successful login
         await new Promise(resolve => setTimeout(resolve, 100)) // Small delay to ensure auth context is updated
 
@@ -66,20 +73,11 @@ export default function LoginPage() {
         const currentUser = user // This should be updated by the login function
         const isPremium = currentUser?.subscriptionStatus === 'premium'
 
-        toast({
-          title: "Login successful",
-          description: isPremium ? "Redirecting to dashboard..." : "Redirecting to tokens...",
-        })
-
         // Redirect based on subscription status
         router.push(isPremium ? "/dashboard" : "/all-tokens")
       } else {
-        // Login failed
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "Invalid email or password. Please try again.",
-        })
+        // Login failed - show simple error message
+        setLoginError(result.message || "Invalid email or password. Please try again.")
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -91,11 +89,7 @@ export default function LoginPage() {
         })
         setErrors(newErrors)
       } else {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "An error occurred. Please try again.",
-        })
+        setLoginError("An error occurred. Please try again.")
       }
     } finally {
       setIsLoading(false)
@@ -208,6 +202,13 @@ export default function LoginPage() {
                 {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
               </div>
             </div>
+
+            {/* Login Error Message */}
+            {loginError && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-red-600 text-sm font-medium">❌ {loginError}</p>
+              </div>
+            )}
 
             <Button
               type="submit"

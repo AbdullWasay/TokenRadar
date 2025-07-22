@@ -8,8 +8,8 @@ import type { User } from './types'
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<boolean>
-  signup: (name: string, email: string, password: string, confirmPassword: string, acceptTerms: boolean) => Promise<boolean>
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>
+  signup: (name: string, email: string, password: string, confirmPassword: string, acceptTerms: boolean) => Promise<{ success: boolean; message?: string }>
   logout: () => void
   checkAuth: () => Promise<void>
   isAuthenticated: boolean
@@ -60,17 +60,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await apiClient.login({ email, password })
       if (response.success && response.user) {
         setUser(response.user)
-        return true
+        return { success: true }
       }
-      return false
+      return { success: false, message: response.message || 'Invalid email or password' }
     } catch (error) {
       console.error('Login failed:', error)
-      return false
+      return { success: false, message: error instanceof Error ? error.message : 'Network error occurred' }
     }
   }
 
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     password: string,
     confirmPassword: string,
     acceptTerms: boolean
-  ): Promise<boolean> => {
+  ): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await apiClient.signup({
         name,
@@ -91,12 +91,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
       if (response.success && response.user) {
         setUser(response.user)
-        return true
+        return { success: true }
       }
-      return false
+      return { success: false, message: response.message || 'Signup failed' }
     } catch (error) {
       console.error('Signup failed:', error)
-      return false
+      return { success: false, message: error instanceof Error ? error.message : 'Network error occurred' }
     }
   }
 
