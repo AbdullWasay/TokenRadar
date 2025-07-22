@@ -101,7 +101,7 @@ export default function Dashboard() {
             <CardContent className="grid gap-3 sm:gap-4">
               <Button asChild className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
                 <Link href="/alerts">
-                  <Bell className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Create Alert</span>
+                  <Bell className="mr-2 h-4 w-4" /> <span className="text-sm sm:text-base">Check Alerts</span>
                 </Link>
               </Button>
               <Button asChild className="justify-start bg-indigo-600 hover:bg-indigo-700 h-10 sm:h-auto">
